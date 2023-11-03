@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 BITS2DTYPE = {
     8: np.uint8,
+    4: np.uint8,
+    1: np.uint8,
+    2: np.uint8,
+    3: np.uint8
 }
 
 
@@ -76,6 +80,7 @@ class CustomIndexPQ:
         save (self.estimator_file,self.estimators) #"estimators.pkl"
 
         self.is_trained = False
+        self.ids = None
 
         self.dtype = BITS2DTYPE[nbits]
         self.dtype_orig = np.float32
@@ -141,7 +146,8 @@ class CustomIndexPQ:
         with open(self.path_to_db, "r") as fin:
             for row in fin.readlines():
                 row_splits = row.split(",")
-                id = int(row_splits[0])
+                id = int(float(row_splits[0]))
+                # print("id = ", np.array([id]))
                 X = [float(e) for e in row_splits[1:]]
                 X = np.array(X).reshape(1,self.d)
                 code = np.empty((1, self.m), dtype=self.dtype)
@@ -150,15 +156,16 @@ class CustomIndexPQ:
                     X_i = X[:, i * self.ds : (i + 1) * self.ds]
                     code[:, i] = estimator.predict(X_i)
                     # add id to code at beginning
-                code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(self.dtype)
+                # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
                 # append to result
-
+                # print("code  ",code)
                 result.append(code)
         # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
-        result = np.array(result).reshape(-1,self.m)
+        # print("resuls = ",result)
+        result = np.array(result).reshape(-1,self.m )
         return result
 
-    def add(self, X: np.ndarray) -> None:
+    def add(self) -> None:
         """Add vectors to the database (their encoded versions).
 
         Parameters
@@ -168,8 +175,8 @@ class CustomIndexPQ:
         """
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
-        # self.codes = self.encode(X)
-        save (self.codes_file,self.encode(X)) #"codes.pkl"
+        # self.codes = self.encode()
+        save (self.codes_file,self.encode()) #"codes.pkl"
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
@@ -234,24 +241,38 @@ class CustomIndexPQ:
         if self.codes is None:
             # load codes from pickle file
             self.codes = load(self.codes_file)
-            self.ids = self.codes[:,0]
-            self.codes = self.codes[:,1:]
+            # print("print(self.codes) =",self.codes)
+            # print("Before ",self.codes.shape)
+            # self.ids = self.codes[:,0]
+            # self.codes = self.codes[:,1:]
+            # print("After ",self.codes.shape)
         if self.estimators is None:
+            print("lalallallaa")
             # load estimators from pickle file
             self.estimators = load(self.estimator_file)
 
         # n_queries = len(X)
+
         distances_all = self.compute_asymmetric_distances(X)
+        # print("Distance ",distances_all.shape)
+        # print("Ids ",self.ids.shape)
+        # print("Ids ",self.ids.reshape(-1,1).shape)
         # append ids column to distances_all
-        distances_all = np.concatenate((self.ids.reshape(-1,1),distances_all), axis=1).astype(self.dtype_orig)
-        # sort distances_all by distances column not id column
-        distances_all = distances_all[distances_all[:,1].argsort()]
+        # distances_all = np.concatenate((self.ids.reshape(-1,1),np.array(distances_all).reshape(-1,1)), axis=1).astype(self.dtype_orig)
+
         
-        # indices = np.argsort(distances_all, axis=1)[:, :k]
+        # sort distances_all by distances column not id column
+
+        # distances_all = distances_all[distances_all[:,1].argsort()]
+        # with open("test.txt", 'wb') as file:
+            # np.savetxt(file,distances_all)
+        
+        
+        indices = np.argsort(distances_all, axis=1)[:, :k]
 
         # distances = np.empty((n_queries, k), dtype=np.float32)
         # for i in range(n_queries):
-        #     distances[i] = distances_all[i][indices[i]]
-
-        return np.array(distances_all[:k,0]).astype(np.int32)
+            # distances[i] = distances_all[i][indices[i]]
+        return indices[0]
+        # return np.array(distances_all[:k,0]).astype(np.int32)
 

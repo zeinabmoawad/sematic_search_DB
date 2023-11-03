@@ -16,7 +16,7 @@ class VecDBWorst:
             for row in rows:
                 id, embed = row["id"], row["embed"]
                 # row_str = f"{id}," + ",".join([str(e) for e in embed])
-                embeds = np.concatenate((id, embed), axis=1).astype(np.float32)
+                embeds = np.concatenate((np.array(id).reshape(1,1), np.array(embed).reshape(1,70)), axis=1).astype(np.float32)
                 np.savetxt(fout, embeds, delimiter=",", fmt="%f")
                 # fout.write(f"{row_str}\n")
         self._build_index()
@@ -44,8 +44,8 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
-        self.index = CustomIndexPQ( d = 70,m = 10 ,nbits = 8,path_to_db= "test.csv",
-                                   estimator_file="estimator.pkl",codes_file="codes.pkl")
+        self.index = CustomIndexPQ( d = 70,m = 2 ,nbits = 4,path_to_db= self.file_path,
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl",init="random",max_iter=500)
         self.index.train()
         self.index.add()
 
