@@ -5,6 +5,7 @@ import logging
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
+import pickle
 import os
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,16 @@ logger = logging.getLogger(__name__)
 BITS2DTYPE = {
     8: np.uint8,
 }
+
+
+def save (file_path,estimators):
+    with open(file_path, 'wb') as file:
+        pickle.dump(estimators, file)
+
+def load(file_path):
+    with open(file_path, 'rb') as file:
+        estimators = pickle.load(file)
+    return estimators
 
 
 class CustomIndexPQ:
@@ -39,8 +50,10 @@ class CustomIndexPQ:
         d: int,
         m: int,
         nbits: int,
+        estimator_file:str,
+        codes_file:str,
         path_to_db: str,
-        **estimator_kwargs: str | int,
+        **estimator_kwargs: str | int
     ) -> None:
         if d % m != 0:
             raise ValueError("d needs to be a multiple of m")
@@ -52,13 +65,19 @@ class CustomIndexPQ:
         self.k = 2**nbits
         self.d = d
         self.ds = d // m
+        self.estimator_file = estimator_file
+        self.codes_file = codes_file
         self.path_to_db = path_to_db
 
         self.estimators = [
             KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
         ]
         logger.info(f"Creating following estimators: {self.estimators[0]!r}")
-
+        print(self.estimators)
+        save (self.estimator_file,self.estimators) #"estimators.pkl"
+        es=load (self.estimator_file) #"estimators.pkl"
+        print("****************************************************************")
+        print(es)
         self.is_trained = False
 
         self.dtype = BITS2DTYPE[nbits]
@@ -149,8 +168,8 @@ class CustomIndexPQ:
         """
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
-        self.codes = self.encode(X)
-        # save codes to csv file
+        # self.codes = self.encode(X)
+        save (self.codes_file,self.encode(X)) #"codes.pkl"
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
@@ -168,12 +187,12 @@ class CustomIndexPQ:
         """
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
-
-        if self.codes is None:
+        codes = load(self.codes_file)
+        if codes is None:
             raise ValueError("No codes detected. You need to run `add` first")
 
         n_queries = len(X)
-        n_codes = len(self.codes)
+        n_codes = len(codes)
 
         distance_table = np.empty(
             (n_queries, self.m, self.k), dtype=self.dtype_orig
@@ -189,7 +208,7 @@ class CustomIndexPQ:
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
 
         for i in range(self.m):
-            distances += distance_table[:, i, self.codes[:, i]]
+            distances += distance_table[:, i, codes[:, i]]
 
         return distances
 
@@ -222,3 +241,4 @@ class CustomIndexPQ:
             distances[i] = distances_all[i][indices[i]]
 
         return distances, indices
+
