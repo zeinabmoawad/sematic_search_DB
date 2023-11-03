@@ -1,5 +1,6 @@
 from typing import Dict, List, Annotated
 import numpy as np
+from PQ import CustomIndexPQ
 
 class VecDBWorst:
     def __init__(self, file_path = "saved_db.csv", new_db = True) -> None:
@@ -39,6 +40,10 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
+        self.index = CustomIndexPQ( d = 70,m = 10 ,nbits = 8,path_to_db= "test.csv")
+        self.index.train()
+        self.index.add()
+
         pass
 
 

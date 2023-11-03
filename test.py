@@ -2,10 +2,12 @@
 import numpy as np
 import csv
 import pandas as pd
+import os
 
 # test fixed row size in csv
 def insert():
-    m = 10
+
+    m = 100000
     # create numpy array with 1000 rows and 70 columns with type float32
     embeds = np.random.random((m, 70)).astype(np.float32)
     # add id column to the numpy array starting from 1
@@ -23,12 +25,16 @@ def load():
     # get the embed columns
     embeds = embeds[:, 1:]
     # print the numpy array
-    print("embeddings",embeds)
+    # print("embeddings",embeds)
     print("ids",ids)
-    print("shape of embeddings",embeds.shape)
-    print("shape of ids",ids.shape)
-    print("type of embeddings",embeds.dtype)
-    print("type of ids",ids.dtype)
+    # print("shape of embeddings",embeds.shape)
+    # print("shape of ids",ids.shape)
+    # print("type of embeddings",embeds.dtype)
+    # print("type of ids",ids.dtype)
+    file_size = os.path.getsize("test.csv")
+    num_lines = file_size // (80*8)
+    print("Number of lines in csv file: ", num_lines)
+    
     
 
 

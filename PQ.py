@@ -5,6 +5,7 @@ import logging
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class CustomIndexPQ:
         d: int,
         m: int,
         nbits: int,
+        path_to_db: str,
         **estimator_kwargs: str | int,
     ) -> None:
         if d % m != 0:
@@ -50,6 +52,7 @@ class CustomIndexPQ:
         self.k = 2**nbits
         self.d = d
         self.ds = d // m
+        self.path_to_db = path_to_db
 
         self.estimators = [
             KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
@@ -63,7 +66,22 @@ class CustomIndexPQ:
 
         self.codes: np.ndarray | None = None
 
-    def train(self, X: np.ndarray) -> None:
+    def load_db(self):
+        # load csv file as numpy array
+        embeds = np.loadtxt(self.path_to_db, delimiter=",")
+        # get the id column
+        ids = embeds[:, 0]
+        # get the embed columns
+        embeds = embeds[:, 1:]
+        # print the numpy array
+        print("embeddings",embeds)
+        print("ids",ids)
+        print("shape of embeddings",embeds.shape)
+        print("shape of ids",ids.shape)
+        print("type of embeddings",embeds.dtype)
+        print("type of ids",ids.dtype)
+        return embeds,ids
+    def train(self) -> None:
         """Train all KMeans estimators.
 
         Parameters
@@ -75,17 +93,19 @@ class CustomIndexPQ:
         if self.is_trained:
             raise ValueError("Training multiple times is not allowed")
 
+        # load data from csv file
+        X,ids = self.load_db()
         for i in range(self.m):
             estimator = self.estimators[i]
             X_i = X[:, i * self.ds : (i + 1) * self.ds]
 
             logger.info(f"Fitting KMeans for the {i}-th segment")
             estimator.fit(X_i)
-
         self.is_trained = True
+        # save estimators to csv file
 
 
-    def encode(self, X: np.ndarray) -> np.ndarray:
+    def encode(self) -> np.ndarray:
         """Encode original features into codes.
 
         Parameters
@@ -98,14 +118,25 @@ class CustomIndexPQ:
         result
             Array of shape `(n_queries, m)` of dtype `np.uint8`.
         """
-        n = len(X)
-        result = np.empty((n, self.m), dtype=self.dtype)
+        # create 2d array
+        result = []
 
-        for i in range(self.m):
-            estimator = self.estimators[i]
-            X_i = X[:, i * self.ds : (i + 1) * self.ds]
-            result[:, i] = estimator.predict(X_i)
-
+        # loop over each row in csv file
+        with open(self.path_to_db, "r") as fin:
+            for row in fin.readlines():
+                row_splits = row.split(",")
+                id = int(row_splits[0])
+                X = [float(e) for e in row_splits[1:]]
+                X = np.array(X).reshape(1,self.d)
+                code = np.empty((1, self.m), dtype=self.dtype)
+                for i in range(self.m):
+                    estimator = self.estimators[i]
+                    X_i = X[:, i * self.ds : (i + 1) * self.ds]
+                    code[:, i] = estimator.predict(X_i)
+                # append to result
+                result.append(code)
+        # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
+        result = np.array(result).reshape(-1,self.m)
         return result
 
     def add(self, X: np.ndarray) -> None:
@@ -119,6 +150,7 @@ class CustomIndexPQ:
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
         self.codes = self.encode(X)
+        # save codes to csv file
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
