@@ -15,22 +15,26 @@ class VecDBWorst:
         with open(self.file_path, "a+") as fout:
             for row in rows:
                 id, embed = row["id"], row["embed"]
-                row_str = f"{id}," + ",".join([str(e) for e in embed])
-                fout.write(f"{row_str}\n")
+                # row_str = f"{id}," + ",".join([str(e) for e in embed])
+                embeds = np.concatenate((id, embed), axis=1).astype(np.float32)
+                np.savetxt(fout, embeds, delimiter=",", fmt="%f")
+                # fout.write(f"{row_str}\n")
         self._build_index()
 
     def retrive(self, query: Annotated[List[float], 70], top_k = 5):
-        scores = []
-        with open(self.file_path, "r") as fin:
-            for row in fin.readlines():
-                row_splits = row.split(",")
-                id = int(row_splits[0])
-                embed = [float(e) for e in row_splits[1:]]
-                score = self._cal_score(query, embed)
-                scores.append((score, id))
-        # here we assume that if two rows have the same score, return the lowest ID
-        scores = sorted(scores)[:top_k]
-        return [s[1] for s in scores]
+        # scores = []
+        # with open(self.file_path, "r") as fin:
+        #     for row in fin.readlines():
+        #         row_splits = row.split(",")
+        #         id = int(row_splits[0])
+        #         embed = [float(e) for e in row_splits[1:]]
+        #         score = self._cal_score(query, embed)
+        #         scores.append((score, id))
+        # # here we assume that if two rows have the same score, return the lowest ID
+        # scores = sorted(scores)[:top_k]
+        # return [s[1] for s in scores]
+        return self.index.search(query, top_k)
+        pass
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -40,7 +44,8 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
-        self.index = CustomIndexPQ( d = 70,m = 10 ,nbits = 8,path_to_db= "test.csv")
+        self.index = CustomIndexPQ( d = 70,m = 10 ,nbits = 8,path_to_db= "test.csv",
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl")
         self.index.train()
         self.index.add()
 
