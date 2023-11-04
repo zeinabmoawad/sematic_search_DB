@@ -1,4 +1,5 @@
-from typing import Dict, List, Annotated
+from typing import Dict, List
+# from typing import Annotated
 import numpy as np
 from PQ import CustomIndexPQ
 
@@ -11,7 +12,8 @@ class VecDBWorst:
                 # if you need to add any head to the file
                 pass
     
-    def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
+    # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
+    def insert_records(self, rows):
         with open(self.file_path, "a+") as fout:
             for row in rows:
                 id, embed = row["id"], row["embed"]
@@ -21,7 +23,8 @@ class VecDBWorst:
                 # fout.write(f"{row_str}\n")
         self._build_index()
 
-    def retrive(self, query: Annotated[List[float], 70], top_k = 5):
+    # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
+    def retrive(self, query, top_k = 5):
         # scores = []
         # with open(self.file_path, "r") as fin:
         #     for row in fin.readlines():
@@ -44,8 +47,8 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
-        self.index = CustomIndexPQ( d = 70,m = 2 ,nbits = 4,path_to_db= self.file_path,
-                                   estimator_file="estimator.pkl",codes_file="codes.pkl",init="random",max_iter=500)
+        self.index = CustomIndexPQ( d = 70,m = 14,nbits = 6,path_to_db= self.file_path,
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl",max_iter=50)
         self.index.train()
         self.index.add()
 

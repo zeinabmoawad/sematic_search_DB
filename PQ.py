@@ -7,6 +7,8 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import pickle
 import os
+import sklearn.metrics.pairwise as pw
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,9 @@ BITS2DTYPE = {
     4: np.uint8,
     1: np.uint8,
     2: np.uint8,
-    3: np.uint8
+    3: np.uint8,
+    5: np.uint16,
+    6: np.uint16
 }
 
 
@@ -116,6 +120,7 @@ class CustomIndexPQ:
 
         # load data from csv file
         X,ids = self.load_db()
+        print("start training")
         for i in range(self.m):
             estimator = self.estimators[i]
             X_i = X[:, i * self.ds : (i + 1) * self.ds]
@@ -124,6 +129,7 @@ class CustomIndexPQ:
             estimator.fit(X_i)
         self.is_trained = True
         # save estimators to csv file
+        print("finished training")
 
 
     def encode(self) -> np.ndarray:
@@ -143,6 +149,7 @@ class CustomIndexPQ:
         result = []
 
         # loop over each row in csv file
+        print("start encoding")
         with open(self.path_to_db, "r") as fin:
             for row in fin.readlines():
                 row_splits = row.split(",")
@@ -163,6 +170,7 @@ class CustomIndexPQ:
         # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
         # print("resuls = ",result)
         result = np.array(result).reshape(-1,self.m )
+        print("finished encoding")
         return result
 
     def add(self) -> None:
@@ -247,7 +255,6 @@ class CustomIndexPQ:
             # self.codes = self.codes[:,1:]
             # print("After ",self.codes.shape)
         if self.estimators is None:
-            print("lalallallaa")
             # load estimators from pickle file
             self.estimators = load(self.estimator_file)
 
