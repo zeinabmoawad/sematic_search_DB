@@ -29,6 +29,7 @@ def run_queries(db, np_rows, top_k, num_runs):
         l2_index.add(np_rows)
         l2_dist, actual_ids = l2_index.search(query,len(np_rows))
         # actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()
+        actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
         # print("actual_ids = ",actual_ids[:5])
         toc = time.time()
         np_run_time = toc - tic
