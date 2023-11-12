@@ -47,7 +47,7 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
-        self.index = CustomIndexPQ( d = 70,m = 14,nbits = 6,path_to_db= self.file_path,
+        self.index = CustomIndexPQ( d = 70,m = 14,nbits = 11,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl",max_iter=50)
         self.index.train()
         self.index.add()

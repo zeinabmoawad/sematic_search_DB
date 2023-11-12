@@ -68,7 +68,7 @@ def eval(results: List[Result]):
 if __name__ == "__main__":
     db = VecDBWorst()
     records_np = np.random.random((10000, 70))
-    # records_np = records_np / np.linalg.norm(records_np, axis=1,keepdims=True)
+    records_np = records_np / np.linalg.norm(records_np, axis=1,keepdims=True)
     records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
     _len = len(records_np)
     db.insert_records(records_dict)

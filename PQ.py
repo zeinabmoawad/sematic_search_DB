@@ -11,6 +11,7 @@ import os
 import sklearn.metrics.pairwise as pw
 import math
 from sklearn import preprocessing
+from scipy.cluster.vq import kmeans2,vq
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,8 @@ BITS2DTYPE = {
     2: np.uint8,
     3: np.uint8,
     5: np.uint16,
-    6: np.uint16
+    6: np.uint16,
+    11: np.uint16
 }
 
 def save_file(file_path,file_save):
@@ -78,11 +80,11 @@ class CustomIndexPQ:
         self.codes_file = codes_file
         self.path_to_db = path_to_db
 
-        self.estimators = [
-            KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
-        ]
-        logger.info(f"Creating following estimators: {self.estimators[0]!r}")
-        save_file(self.estimator_file,self.estimators) #"estimators.pkl"
+        # self.estimators = [
+        #     KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
+        # ]
+        # logger.info(f"Creating following estimators: {self.estimators[0]!r}")
+        # save_file(self.estimator_file,self.estimators) #"estimators.pkl"
 
         self.is_trained = False
         self.ids = None
@@ -133,12 +135,14 @@ class CustomIndexPQ:
         # load data from csv file
         X,ids = self.load_db()
         print("start training")
+        self.estimators = [] 
         for i in range(self.m):
-            estimator = self.estimators[i]
+            # estimator = self.estimators[i]
             X_i = X[:, i * self.ds : (i + 1) * self.ds]
-
+            centroids, _ = kmeans2(X_i, self.k) 
             logger.info(f"Fitting KMeans for the {i}-th segment")
-            estimator.fit(X_i)
+            # estimator.fit(X_i)
+            self.estimators.append(centroids)
         self.is_trained = True
         # save estimators to csv file
         print("finished training")
@@ -173,7 +177,9 @@ class CustomIndexPQ:
                 for i in range(self.m):
                     estimator = self.estimators[i]
                     X_i = X[:, i * self.ds : (i + 1) * self.ds]
-                    code[:, i] = estimator.predict(X_i)
+                    code_i, _ = vq(X_i, estimator) 
+                    # code[:, i] = estimator.predict(X_i)
+                    code[:, i] = code_i
                     # add id to code at beginning
                 # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
                 # append to result
@@ -202,7 +208,7 @@ class CustomIndexPQ:
         dot_product = np.dot(vec1, vec2)
         norm_vec1 = np.linalg.norm(vec1)
         norm_vec2 = np.linalg.norm(vec2)
-        cosine_similarity = dot_product / (norm_vec1 * norm_vec2)
+        cosine_similarity = dot_product / (norm_vec1* norm_vec2)
         return 2-2*cosine_similarity
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
@@ -235,32 +241,30 @@ class CustomIndexPQ:
         
         for i in range(self.m):
             X_i = X[:, i * self.ds : (i + 1) * self.ds]  # (n_queries, ds)
-            centers = self.estimators[i].cluster_centers_ # (k, ds)
-            # distance_table[:, i, :] = euclidean_distances(
+            centers = self.estimators[i] # (k, ds)
+            # lala = euclidean_distances(
             #     X_i, centers, squared=True
             # )
+            # print("Eucledian: ",lala,'\n')
+            X_i = X_i / np.linalg.norm(X_i, axis=1,keepdims=True)
             # cosine_similarity = np.dot(X_i,centers)/np.linalg.norm(X) * np.linalg.norm(centers)
-            code[:, i] = estimator.predict(X_i)
-            print(cosine_similarity)
         #     distance_table[:, i, :] = 2 - 2*cosine_similarity(X_i, centers)
             ans = self._cal_score(centers,X_i.reshape(-1,1))
-        #     # b = []
-        #     # # # # print(ans)
-        #     # for a in ans:
-        #     #     b.append(math.sqrt(2*abs(1-a)))
-        #     # distance_table[:, i, :] = ans.reshape(1,-1)
-
-
-        # # print("of my function = ",ans.reshape(1,-1),"\n")
+            # b = []
+            # for a in ans:
+            #     b.append(math.sqrt(2*abs(1-a)))
+            # print("b answer = ",b,)
+            distance_table[:, i, :] = ans.reshape(1,-1)
+            # print("of my function = ",ans.reshape(1,-1),"\n")
         # # print("of function defined = ",1 - cosine_similarity(X_i, centers),"\n")
 
 
-        # distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
+        distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
 
-        # for i in range(self.m):
-        #     distances += distance_table[:, i, self.codes[:, i]]
+        for i in range(self.m):
+            distances += distance_table[:, i, self.codes[:, i]]
 
-        # return distances
+        return distances
 
     def search(self, X: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
         """Find k closest database codes to given queries.
