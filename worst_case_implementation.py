@@ -2,6 +2,7 @@ from typing import Dict, List
 # from typing import Annotated
 import numpy as np
 from PQ import CustomIndexPQ
+import time
 
 class VecDBWorst:
     def __init__(self, file_path = "saved_db.csv", new_db = True) -> None:
@@ -47,10 +48,15 @@ class VecDBWorst:
         return cosine_similarity
 
     def _build_index(self):
-        self.index = CustomIndexPQ( d = 70,m = 14,nbits = 6,path_to_db= self.file_path,
-                                   estimator_file="estimator.pkl",codes_file="codes.pkl",max_iter=50)
+        # start time
+        start = time.time()
+        self.index = CustomIndexPQ( d = 70,m = 7,nbits = 4,path_to_db= self.file_path,
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl",max_iter=100)
         self.index.train()
         self.index.add()
+        # end time
+        end = time.time()
+        print("time to build index = ", end - start)
 
         pass
 

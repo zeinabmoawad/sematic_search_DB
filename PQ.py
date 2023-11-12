@@ -18,8 +18,9 @@ BITS2DTYPE = {
     1: np.uint8,
     2: np.uint8,
     3: np.uint8,
-    5: np.uint16,
-    6: np.uint16
+    5: np.uint8,
+    6: np.uint8,
+    7: np.uint8,
 }
 
 
@@ -246,6 +247,7 @@ class CustomIndexPQ:
         indices
             Array of shape `(n_queries, k)`.
         """
+
         if self.codes is None:
             # load codes from pickle file
             self.codes = load(self.codes_file)
