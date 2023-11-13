@@ -303,8 +303,6 @@ class CustomIndexPQ:
         for i in range(self.m):
             distances += distance_table[:, i, self.codes[:, i+1]]
         # append ids column to distances
-        print("codes shape = ",self.codes[:,0].shape)
-        print("distances shape = ",distances.shape)
         distances = np.concatenate((np.array(self.codes[:,0]).reshape(-1,1),distances.reshape(-1,1)), axis=1).astype(self.dtype_orig)
 
         return distances
@@ -399,7 +397,8 @@ class CustomIndexPQ:
                 #     self.codes = np.concatenate((self.codes,pickle.load(file)), axis=0)
                 self.codes = pickle.load(file)
                 distances_all = self.compute_asymmetric_distances(Xq)
-                distances_all = distances_all[distances_all[:,1].argsort()][:,:k]
+                print("Distance ",distances_all.shape)
+                distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
                 # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all
@@ -407,7 +406,8 @@ class CustomIndexPQ:
                     distances = np.concatenate((distances,distances_all), axis=0)
         
         # sort distances_all by distances column not id column
-        distances = distances[distances[:,1].argsort()][:,:k]
+        print("Distance ",distances.shape)
+        distances = distances[distances[:,1].argsort()][:k,:]
 
         # return id column of distances
         return distances[:,0].astype(np.int32)

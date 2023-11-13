@@ -39,7 +39,7 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         
-        centroids = self.ivfindex.IVF_search(query)
+        centroids = self.ivfindex.IVF_search(query.copy())
         return self.pqindex.search_using_IVF(query,centroids,top_k)
             
 
@@ -57,8 +57,8 @@ class VecDBWorst:
         start = time.time()
         # Ivf ,PQ
 
-        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
-        self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 8,path_to_db= self.file_path,
+        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size= 10000,iter=500,centroids_num= 256,nprops=64)
+        self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl")
         # Training
 

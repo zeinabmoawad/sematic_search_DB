@@ -63,7 +63,7 @@ class ivf :
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
         # xp = xp/np.linalg.norm(xp, axis=1).reshape(-1,1)
-        (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter)
+        (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
         self.centroids=centroids
         clustering_batch=self.preprocessing(xp,assignments)
         return clustering_batch
