@@ -196,8 +196,35 @@ class CustomIndexPQ:
         result = np.array(result).reshape(-1,self.m )
         print("finished encoding")
         return result
+    def encode_using_IVF(self,X: np.ndarray) -> np.ndarray:
+        # create 2d array
+        result = []
 
-    def add(self) -> None:
+        # loop over each row in csv file
+        print("start encoding")
+        for row in X:
+            id = int(row[0])
+            X = [float(e) for e in row[1:]]
+            X = np.array(X).reshape(1,self.d)
+            code = np.empty((1, self.m), dtype=self.dtype)
+            for i in range(self.m):
+                estimator = self.estimators[i]
+                X_i = X[:, i * self.ds : (i + 1) * self.ds]
+                code_i, _ = vq(X_i, estimator) 
+                # code[:, i] = estimator.predict(X_i)
+                code[:, i] = code_i
+                # add id to code at beginning 
+                code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            # append to result
+            # print("code  ",code)
+            result.append(code)
+        # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
+        # print("resuls = ",result)
+        result = np.array(result).reshape(-1,self.m+1)
+        print("finished encoding")
+        return result
+    def add(self,data:np.ndarray= None) -> None:
         """Add vectors to the database (their encoded versions).
 
         Parameters
@@ -208,7 +235,15 @@ class CustomIndexPQ:
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
         # self.codes = self.encode()
-        save_file(self.codes_file,self.encode()) #"codes.pkl"
+        if data is not None:
+            for i in range(len(data)):
+                # open pickle file with name i if exists or create new one and append to it
+                with open("codes_"+str(i)+".pkl", 'ab+') as file:
+                    result = self.encode_using_IVF(data[i])
+                    pickle.dump(result, file)
+
+        else:
+            save_file(self.codes_file,self.encode()) #"codes.pkl"
 
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)

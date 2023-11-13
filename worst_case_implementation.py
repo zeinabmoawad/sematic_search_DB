@@ -38,7 +38,6 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         return self.index.search(query, top_k)
-        pass
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -50,9 +49,10 @@ class VecDBWorst:
     def _build_index(self):
         # start time
         start = time.time()
-        self.index = CustomIndexPQ( d = 70,m = 7,nbits = 4,path_to_db= self.file_path,
-                                   estimator_file="estimator.pkl",codes_file="codes.pkl",max_iter=100)
+        self.index = CustomIndexPQ( d = 70,m = 10,nbits = 8,path_to_db= self.file_path,
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl")
         self.index.train()
+        
         self.index.add()
         # end time
         end = time.time()

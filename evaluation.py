@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 
-# import faiss
+import faiss
 
 AVG_OVERX_ROWS = 10
 
@@ -26,9 +26,9 @@ def run_queries(db, np_rows, top_k, num_runs):
         toc = time.time()
         run_time = toc - tic
         tic = time.time()
-        # l2_index = faiss.IndexFlatL2(70)
-        # l2_index.add(np_rows)
-        # l2_dist, actual_ids = l2_index.search(query,len(np_rows))
+        l2_index = faiss.IndexFlatL2(70)
+        l2_index.add(np_rows)
+        l2_dist, actual_ids = l2_index.search(query,len(np_rows))
         # actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()
         # actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
         # print("actual_ids = ",actual_ids[:5])
@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     for i in range(1):
         db = VecDBWorst()
-        records_np = np.random.random((1000000, 70))
-        records_np = records_np / np.linalg.norm(records_np, axis=1,keepdims=True)
+        records_np = np.random.random((100000, 70))
+        # records_np = records_np / np.linalg.norm(records_np, axis=1,keepdims=True)
         records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
         _len = len(records_np)
         db.insert_records(records_dict)
