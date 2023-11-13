@@ -2,6 +2,7 @@ from typing import Dict, List
 # from typing import Annotated
 import numpy as np
 from PQ import CustomIndexPQ
+from ivf import ivf
 import time
 
 class VecDBWorst:
@@ -49,11 +50,18 @@ class VecDBWorst:
     def _build_index(self):
         # start time
         start = time.time()
-        self.index = CustomIndexPQ( d = 70,m = 10,nbits = 8,path_to_db= self.file_path,
+        # Ivf ,PQ
+        self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 8,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl")
-        self.index.train()
-        
-        self.index.add()
+        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
+        # Training
+        self.pqindex.train()
+        train_batch_clusters=self.ivfindex.IVF_train()
+        # Clustering
+        self.pqindex.add(train_batch_clusters)
+        # for i in range(9):
+        #     predict_batch_clusters=self.ivfindex.IVF_predict()
+        #     self.pqindex.add(predict_batch_clusters) 
         # end time
         end = time.time()
         print("time to build index = ", end - start)
