@@ -302,7 +302,9 @@ class CustomIndexPQ:
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
 
         for i in range(self.m):
-            distances += distance_table[:, i, self.codes[:, i]]
+            distances += distance_table[:, i, self.codes[1:, i]]
+        # append ids column to distances
+        distances = np.concatenate((self.codes[1:,0].reshape(-1,1),distances), axis=1).astype(self.dtype_orig)
 
         return distances
 
@@ -354,7 +356,7 @@ class CustomIndexPQ:
         # with open("test.txt", 'wb') as file:
             # np.savetxt(file,distances_all)
         
-        
+        # sort distances_all by distances column not id column
         indices = np.argsort(distances_all, axis=1)[:, :k]
 
         # distances = np.empty((n_queries, k), dtype=np.float32)
@@ -362,7 +364,7 @@ class CustomIndexPQ:
             # distances[i] = distances_all[i][indices[i]]
         return indices[0]
         # return np.array(distances_all[:k,0]).astype(np.int32)
-    def search_using_IVF(self, Xq: np.ndarray,codes:np.ndarray,k: int) -> tuple[np.ndarray, np.ndarray]:
+    def search_using_IVF(self, Xq: np.ndarray,centriods:np.ndarray,k: int) -> tuple[np.ndarray, np.ndarray]:
         """Find k closest database codes to given queries.
 
         Parameters
@@ -381,15 +383,33 @@ class CustomIndexPQ:
         indices
             Array of shape `(n_queries, k)`.
         """
-        self.codes = codes
-
+        # self.codes = codes
+        # load codes from pickle file with name i in centroid list
         if self.estimators is None:
             # load estimators from pickle file
             self.estimators = load(self.estimator_file)
+        distances = []
+        for i in range(len(centriods)):
+            # open pickle file with name i if exists or create new one and append to it
+            with open("codes_"+str(i)+".pkl", 'rb') as file:
+                # if i == 0:
+                #     self.codes = pickle.load(file)
+                # else:
+                #     self.codes = np.concatenate((self.codes,pickle.load(file)), axis=0)
+                self.codes = pickle.load(file)
+                distances_all = self.compute_asymmetric_distances(Xq)
+                distances_all = distances_all[distances_all[:,1].argsort()][:,:k]
+                # indices = np.argsort(distances_all, axis=1)[:, :k]
+                if i == 0:
+                    distances = distances_all
+                else:
+                    distances = np.concatenate((distances,distances_all), axis=0)
+        
+        # sort distances_all by distances column not id column
+        distances = distances[distances[:,1].argsort()][:,:k]
 
-        distances_all = self.compute_asymmetric_distances(Xq)
-        indices = np.argsort(distances_all, axis=1)[:, :k]
+        # return id column of distances
+        return distances[:,0].astype(np.int32)
 
-        return indices[0]
 
 
