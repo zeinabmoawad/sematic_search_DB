@@ -201,10 +201,9 @@ class CustomIndexPQ:
         result = []
 
         # loop over each row in csv file
-        print("start encoding")
         for row in X:
             id = int(row[0])
-            X = [float(e) for e in row[1:]]
+            X = row[1]
             X = np.array(X).reshape(1,self.d)
             code = np.empty((1, self.m), dtype=self.dtype)
             for i in range(self.m):
@@ -214,7 +213,8 @@ class CustomIndexPQ:
                 # code[:, i] = estimator.predict(X_i)
                 code[:, i] = code_i
                 # add id to code at beginning 
-                code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            # print("code shape = ",code.shape)
             # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
             # append to result
             # print("code  ",code)
@@ -222,7 +222,6 @@ class CustomIndexPQ:
         # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
         # print("resuls = ",result)
         result = np.array(result).reshape(-1,self.m+1)
-        print("finished encoding")
         return result
     def add(self,data:np.ndarray= None) -> None:
         """Add vectors to the database (their encoded versions).
@@ -300,11 +299,13 @@ class CustomIndexPQ:
 
 
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
-
+        print("codes shape = ",self.codes.shape)
         for i in range(self.m):
-            distances += distance_table[:, i, self.codes[1:, i]]
+            distances += distance_table[:, i, self.codes[:, i+1]]
         # append ids column to distances
-        distances = np.concatenate((self.codes[1:,0].reshape(-1,1),distances), axis=1).astype(self.dtype_orig)
+        print("codes shape = ",self.codes[:,0].shape)
+        print("distances shape = ",distances.shape)
+        distances = np.concatenate((np.array(self.codes[:,0]).reshape(-1,1),distances.reshape(-1,1)), axis=1).astype(self.dtype_orig)
 
         return distances
 

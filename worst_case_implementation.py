@@ -38,7 +38,12 @@ class VecDBWorst:
         # # here we assume that if two rows have the same score, return the lowest ID
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
-        return self.index.search(query, top_k)
+        
+        centroids = self.ivfindex.IVF_search(query)
+        return self.pqindex.search_using_IVF(query,centroids,top_k)
+            
+
+        
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -51,14 +56,17 @@ class VecDBWorst:
         # start time
         start = time.time()
         # Ivf ,PQ
+
+        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
         self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 8,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl")
-        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
         # Training
-        self.pqindex.train()
+
         train_batch_clusters=self.ivfindex.IVF_train()
         # Clustering
+        self.pqindex.train()
         self.pqindex.add(train_batch_clusters)
+        
         # for i in range(9):
         #     predict_batch_clusters=self.ivfindex.IVF_predict()
         #     self.pqindex.add(predict_batch_clusters) 

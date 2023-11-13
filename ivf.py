@@ -22,8 +22,8 @@ class ivf :
         iter,
         centroids_num
         ) -> None:
-        self.train_batch_size=train_batch_size,
-        self.predict_batch_size=predict_batch_size,
+        self.train_batch_size=train_batch_size
+        self.predict_batch_size=predict_batch_size
         self.data_path=data_path
         self.prediction_count=0
         # self.k=k
@@ -32,26 +32,38 @@ class ivf :
         self.centroids_num=centroids_num
 
     #Fetching file
-    def fetch_from_csv(file_path,line_number,size):
+    def fetch_from_csv(self,file_path,line_number,size):
         row_size = 80*8 #size of each row in bytes
         byte_offset = (line_number - 1) * row_size
+        specific_rows=[]
         with open(file_path, 'r', encoding='utf-8') as csv_file:
             csv_file.seek(byte_offset)
-            specific_rows = csv_file.readline().strip()
+            specific_row = csv_file.readline().strip()
+            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+            print("specific_row type: ",type(specific_row))
+            specific_rows.append(specific_row)
+            print("size: ",size)
             for i in range(size-1):
-                specific_rows += csv_file.readline().strip()
-        return specific_rows
+                
+                specific_row = csv_file.readline().strip()
+                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+                specific_rows.append(specific_row)
+        return np.array(specific_rows)
     #Assign every batch
     def preprocessing(self,xp,assignments):
-        clustering_batch = [[] for _ in range(self.centroids)]
+        clustering_batch = [[] for _ in range(len(self.centroids))]
         for i, k in enumerate(assignments):
             clustering_batch[k].append((xp[i][0],xp[i][1:]))  # the nth vector gets added to the kth cluster...
         return clustering_batch
     # train
     def IVF_train(self):
         xp=self.fetch_from_csv(self.data_path,1,self.train_batch_size)
-        xp=np.array([record/np.linalg.norm(record) for record in xp])
-        (centroids, assignments) = kmeans2(xp[:,1:], self.centroids_num, self.iter)
+        # ids = xp[:, 0]
+        # get the embed columns
+        embeds = xp[:, 1:]
+        embeds = np.array([record/np.linalg.norm(record) for record in embeds])
+        # xp = xp/np.linalg.norm(xp, axis=1).reshape(-1,1)
+        (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter)
         self.centroids=centroids
         clustering_batch=self.preprocessing(xp,assignments)
         return clustering_batch
@@ -59,19 +71,22 @@ class ivf :
     #clustering_data
     def IVF_predict(self):
         xp=self.fetch_from_csv(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count+1,self.predict_batch_size)
-        xp=np.array([record/np.linalg.norm(record) for record in xp])
+        embeds = xp[:, 1:]
+        embeds = np.array([record/np.linalg.norm(record) for record in embeds])
+        # xp=np.array([record/np.linalg.norm(record) for record in xp])
         self.prediction_count+=1
-        assignments, _ = vq(xp[:,1:], self.centroids)
+        assignments, _ = vq(embeds, self.centroids)
         clustering_batch=self.preprocessing(xp,assignments)
         return clustering_batch
     
     #Searching
-    def _cal_score(vec1, vec2):
+    def _cal_score(self,vec1, vec2):
         cosine_similarity=vec1.dot(vec2.T).T / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
         return cosine_similarity
     
     def IVF_search(self,query):
         l=[]
+        query = query/np.linalg.norm(query)
         for centroid in self.centroids:
             x=self._cal_score(query,centroid)
             x= math.sqrt(2*abs(1-x))
