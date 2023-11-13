@@ -93,32 +93,25 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         return nearset_centers
+    
+    def IVF_test(self,query,train_batch_clusters):
+        l=[]
+        query = query/np.linalg.norm(query)
+        for centroid in self.centroids:
+            x=self._cal_score(query,centroid)
+            x= math.sqrt(2*abs(1-x))
+            l.append(x)
+        nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
+        print("centers len",len(nearset_centers))
+        nearest=[]
+        for c in nearset_centers:
+            for row in train_batch_clusters[c]:
+                x=self._cal_score(row[1], query[0])
+                x= math.sqrt(2*abs(1-x))
+                nearest.append({'index':row[0],'value':x})
+        sorted_list = sorted(nearest, key=lambda x: x['value'])[:10]
+        return [d['index'] for d in sorted_list]
         
-
-# #evalute by cosine similarty
-# def _cal_score(vec1, vec2):
-#     dot_product = np.dot(vec1, vec2)
-#     norm_vec1 = np.linalg.norm(vec1)
-#     norm_vec2 = np.linalg.norm(vec2)
-#     # cosine_similarity = dot_product / (norm_vec1*norm_vec2)
-#     cosine_similarity=vec1.dot(vec2.T).T / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-#     return cosine_similarity
-
-# def test_IVF_cosine(query,centroids,xp,clustering,k,nprops):
-# l=[]
-# for centroid in centroids:
-#     x=_cal_score(query,centroid)
-#     x= math.sqrt(2*abs(1-x))
-#     l.append(x)
-# nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:nprops]
-# nearest=[]
-# for c in nearset_centers:
-#     for i in clustering[c]:
-#         x=_cal_score(xp[i], query[0])
-#         x= math.sqrt(2*abs(1-x))
-#         nearest.append({'index':i,'value':x})
-# sorted_list = sorted(nearest, key=lambda x: x['value'])[:k]
-# return [d['index'] for d in sorted_list]
 
 # #Start clustrin
 # assignments,centroids=IVF_train(xp,num_part,iter)
@@ -131,57 +124,65 @@ class ivf :
 # # print(len(assignments))
 
 # from typing_extensions import runtime
-# @dataclass
-# class Result:
-#     run_time: float
-#     top_k: int
-#     db_ids: List[int]
-#     actual_ids: List[int]
-# def run_queries(np_rows, top_k, num_runs):
-#     results = []
-#     for _ in range(num_runs):
-#         query = np.random.random((1,70))
-#         query = query/np.linalg.norm(query)
-#         tic = time.time()
-#         db_ids=test_IVF_cosine(query,centroids,np_rows,clustering,top_k,nprops);
-#         toc = time.time()
-#         run_time = toc - tic
-#         print("time of search:")
-#         print(run_time)
-#         print(db_ids)
-#         tic = time.time()
-#         actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
-#         toc = time.time()
-#         np_run_time = toc - tic
-#         print(actual_ids[:30])
-#         results.append(Result(run_time, top_k, db_ids, actual_ids))
-#     return results
+@dataclass
+class Result:
+    run_time: float
+    top_k: int
+    db_ids: List[int]
+    actual_ids: List[int]
+def run_queries(top_k, num_runs):
+    results = []
+    for _ in range(num_runs):
+        query = np.random.random((1,70))
+        query = query/np.linalg.norm(query)
+        tic = time.time()
+        ivfindex=ivf(data_path="saved_db.csv",train_batch_size=10000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
+        train_batch_clusters=ivfindex.IVF_train()
+        # Clustering
+        db_ids=ivfindex.IVF_test(query,train_batch_clusters)
+        toc = time.time()
+        run_time = toc - tic
+        print("time of search:")
+        print(run_time)
+        print(db_ids)
+        np_rows=ivfindex.fetch_from_csv("saved_db.csv",1,10000)
+        embeds = np_rows[:, 1:]
+        np_rows = np.array([record/np.linalg.norm(record) for record in embeds])
+        tic = time.time()
+        actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
+        toc = time.time()
+        np_run_time = toc - tic
+        print(actual_ids[:30])
+        results.append(Result(run_time, top_k, db_ids, actual_ids))
+    return results
 
-# def eval(results: List[Result]):
-#     # scores are negative. So getting 0 is the best score.
-#     scores = []
-#     run_time = []
-#     counter = 0
-#     for res in results:
-#         run_time.append(res.run_time)
-#         # case for retireving number not equal to top_k, socre will be the lowest
-#         if len(set(res.db_ids)) != res.top_k or len(res.db_ids) != res.top_k:
-#             scores.append( -1 * len(res.actual_ids) * res.top_k)
-#             continue
-#         score = 0
-#         for id in res.db_ids:
-#             try:
-#                 ind = res.actual_ids.index(id)
-#                 if ind > res.top_k * 3:
-#                     score -= ind
-#                 else :
-#                     counter += 1
-#             except:
-#                 score -= len(res.actual_ids)
-#         scores.append(score)
-#     print(counter)
-#     return sum(scores) / len(scores), sum(run_time)/len(run_time)
+def eval(results: List[Result]):
+    # scores are negative. So getting 0 is the best score.
+    scores = []
+    run_time = []
+    counter = 0
+    for res in results:
+        run_time.append(res.run_time)
+        # case for retireving number not equal to top_k, socre will be the lowest
+        if len(set(res.db_ids)) != res.top_k or len(res.db_ids) != res.top_k:
+            scores.append( -1 * len(res.actual_ids) * res.top_k)
+            continue
+        score = 0
+        for id in res.db_ids:
+            try:
+                ind = res.actual_ids.index(id)
+                if ind > res.top_k * 3:
+                    score -= ind
+                else :
+                    counter += 1
+            except:
+                score -= len(res.actual_ids)
+        scores.append(score)
+    print(counter)
+    return sum(scores) / len(scores), sum(run_time)/len(run_time)
 
-# results=run_queries(xp, 10, 1)
-# # print(results)
-# print(eval(results))
+
+
+results=run_queries(10, 10)
+# print(results)
+print(eval(results))
