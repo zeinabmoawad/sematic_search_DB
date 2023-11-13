@@ -5,9 +5,13 @@ import logging
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import os
 import sklearn.metrics.pairwise as pw
+import math
+from sklearn import preprocessing
+from scipy.cluster.vq import kmeans2,vq
 
 
 logger = logging.getLogger(__name__)
@@ -21,18 +25,18 @@ BITS2DTYPE = {
     5: np.uint8,
     6: np.uint8,
     7: np.uint8,
+    9: np.uint16,
+    10: np.uint16,
+    11: np.uint16
 }
 
-
-def save (file_path,estimators):
+def save_file(file_path,file_save):
     with open(file_path, 'wb') as file:
-        pickle.dump(estimators, file)
-
+        pickle.dump(file_save, file)
 def load(file_path):
     with open(file_path, 'rb') as file:
-        estimators = pickle.load(file)
-    return estimators
-
+        file_loaded = pickle.load(file)
+    return file_loaded
 
 class CustomIndexPQ:
     """Custom IndexPQ implementation.
@@ -53,6 +57,7 @@ class CustomIndexPQ:
         class.
 
     """
+    
 
     def __init__(
         self,
@@ -78,11 +83,11 @@ class CustomIndexPQ:
         self.codes_file = codes_file
         self.path_to_db = path_to_db
 
-        self.estimators = [
-            KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
-        ]
-        logger.info(f"Creating following estimators: {self.estimators[0]!r}")
-        save (self.estimator_file,self.estimators) #"estimators.pkl"
+        # self.estimators = [
+        #     KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
+        # ]
+        # logger.info(f"Creating following estimators: {self.estimators[0]!r}")
+        # save_file(self.estimator_file,self.estimators) #"estimators.pkl"
 
         self.is_trained = False
         self.ids = None
@@ -107,6 +112,19 @@ class CustomIndexPQ:
         # print("type of embeddings",embeds.dtype)
         # print("type of ids",ids.dtype)
         return embeds,ids
+
+
+    def fetch_from_csv(file_path,line_number,size):
+        row_size = 80*8 #size of each row in bytes
+        byte_offset = (line_number - 1) * row_size
+        with open(file_path, 'r', encoding='utf-8') as csv_file:
+            csv_file.seek(byte_offset)
+            specific_rows = csv_file.readline().strip()
+            for i in range(size-1):
+                specific_rows += csv_file.readline().strip()
+        return specific_rows
+
+
     def train(self) -> None:
         """Train all KMeans estimators.
 
@@ -122,12 +140,15 @@ class CustomIndexPQ:
         # load data from csv file
         X,ids = self.load_db()
         print("start training")
+        self.estimators = [] 
         for i in range(self.m):
-            estimator = self.estimators[i]
+            # estimator = self.estimators[i]
             X_i = X[:, i * self.ds : (i + 1) * self.ds]
-
+            centroids, _ = kmeans2(X_i, self.k,iter=100,minit='points') 
+            print("Finished KMeans for the ",i,"-th segment"," from ",self.m," segments")
             logger.info(f"Fitting KMeans for the {i}-th segment")
-            estimator.fit(X_i)
+            # estimator.fit(X_i)
+            self.estimators.append(centroids)
         self.is_trained = True
         # save estimators to csv file
         print("finished training")
@@ -162,7 +183,9 @@ class CustomIndexPQ:
                 for i in range(self.m):
                     estimator = self.estimators[i]
                     X_i = X[:, i * self.ds : (i + 1) * self.ds]
-                    code[:, i] = estimator.predict(X_i)
+                    code_i, _ = vq(X_i, estimator) 
+                    # code[:, i] = estimator.predict(X_i)
+                    code[:, i] = code_i
                     # add id to code at beginning
                 # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
                 # append to result
@@ -185,7 +208,14 @@ class CustomIndexPQ:
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
         # self.codes = self.encode()
-        save (self.codes_file,self.encode()) #"codes.pkl"
+        save_file(self.codes_file,self.encode()) #"codes.pkl"
+
+    def _cal_score(self, vec1, vec2):
+        dot_product = np.dot(vec1, vec2)
+        norm_vec1 = np.linalg.norm(vec1)
+        norm_vec2 = np.linalg.norm(vec2)
+        cosine_similarity = dot_product / (norm_vec1* norm_vec2)
+        return 2-2*cosine_similarity
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
@@ -214,12 +244,25 @@ class CustomIndexPQ:
             (n_queries, self.m, self.k), dtype=self.dtype_orig
         )  # (n_queries, m, k)
 
+        
         for i in range(self.m):
             X_i = X[:, i * self.ds : (i + 1) * self.ds]  # (n_queries, ds)
-            centers = self.estimators[i].cluster_centers_  # (k, ds)
+            centers = self.estimators[i] # (k, ds)
             distance_table[:, i, :] = euclidean_distances(
                 X_i, centers, squared=True
             )
+        #     X_i = X_i / np.linalg.norm(X_i, axis=1,keepdims=True)
+        #     # cosine_similarity = np.dot(X_i,centers)/np.linalg.norm(X) * np.linalg.norm(centers)
+        # #     distance_table[:, i, :] = 2 - 2*cosine_similarity(X_i, centers)
+        #     ans = self._cal_score(centers,X_i.reshape(-1,1))
+        #     # b = []
+        #     # for a in ans:
+        #     #     b.append(math.sqrt(2*abs(1-a)))
+        #     # print("b answer = ",b,)
+        #     distance_table[:, i, :] = ans.reshape(1,-1)
+            # print("of my function = ",ans.reshape(1,-1),"\n")
+        # # print("of function defined = ",1 - cosine_similarity(X_i, centers),"\n")
+
 
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
 
@@ -261,7 +304,7 @@ class CustomIndexPQ:
             self.estimators = load(self.estimator_file)
 
         # n_queries = len(X)
-
+        # X = X / np.linalg.norm(X, axis=1,keepdims=True)
         distances_all = self.compute_asymmetric_distances(X)
         # print("Distance ",distances_all.shape)
         # print("Ids ",self.ids.shape)
@@ -284,4 +327,34 @@ class CustomIndexPQ:
             # distances[i] = distances_all[i][indices[i]]
         return indices[0]
         # return np.array(distances_all[:k,0]).astype(np.int32)
+    def search_using_IVF(self, Xq: np.ndarray,codes:np.ndarray,k: int) -> tuple[np.ndarray, np.ndarray]:
+        """Find k closest database codes to given queries.
+
+        Parameters
+        ----------
+        X
+            Array of shape `(n_queries, d)` of dtype `np.float32`.
+
+        k
+            The number of closest codes to look for.
+
+        Returns
+        -------
+        distances
+            Array of shape `(n_queries, k)`.
+
+        indices
+            Array of shape `(n_queries, k)`.
+        """
+        self.codes = codes
+
+        if self.estimators is None:
+            # load estimators from pickle file
+            self.estimators = load(self.estimator_file)
+
+        distances_all = self.compute_asymmetric_distances(Xq)
+        indices = np.argsort(distances_all, axis=1)[:, :k]
+
+        return indices[0]
+
 
