@@ -23,6 +23,7 @@ def run_queries(db, np_rows, top_k, num_runs):
         
         tic = time.time()
         db_ids = db.retrive(query, top_k)
+        # print("Our indicies ",db_ids)
         # print("db_ids = ",db_ids)
         toc = time.time()
         run_time = toc - tic
