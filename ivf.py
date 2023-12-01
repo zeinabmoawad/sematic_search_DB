@@ -8,6 +8,8 @@ import time
 from dataclasses import dataclass
 from typing import List
 import sys
+import pickle
+
 class ivf :
 
 # Parameters:
@@ -44,13 +46,11 @@ class ivf :
             csv_file.seek(byte_offset)
             specific_row = csv_file.readline().strip()
             specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-            # print("specific_row type: ",type(specific_row))
             specific_rows.append(specific_row)
             for i in range(size-1):
                 specific_row = csv_file.readline().strip()
                 specific_row = np.fromstring(specific_row, dtype=float, sep=',')
                 specific_rows.append(specific_row)
-        # print("row 0",specific_rows[-1])
         return np.array(specific_rows)
 
     def calculate_byte_offset(self,line_number, row_size):
@@ -115,7 +115,7 @@ class ivf :
         return nearset_centers
     
     #nearest idicies
-    def IVF_search_small_data(self,query,clusters,top_k):
+    def IVF_search_small_data(self,query,top_k):
         l=[]
         query = query/np.linalg.norm(query)
         for centroid in self.centroids:
@@ -124,13 +124,48 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         nearest=[]
+        clusters = self.load_from_text_file("ivf_cluster_"+str(0)+".txt")
         for c in nearset_centers:
-            for row in clusters[c]:
-                x=self._cal_score(row[1], query[0])
-                x= math.sqrt(2*abs(1-x))
-                nearest.append({'index':row[0],'value':x})
+                clusters = self.load_from_text_file("ivf_cluster_"+str(c)+".txt")
+                for row in clusters:
+                    x=self._cal_score(row[1], query[0])
+                    x= math.sqrt(2*abs(1-x))
+                    nearest.append({'index':row[0],'value':x})
         sorted_list = sorted(nearest, key=lambda x: x['value'])[:top_k]
         return [d['index'] for d in sorted_list]
+    
+    def add_clusters(self,cluster:np.ndarray= None) -> None:
+        """Add vectors to the database (their encoded versions).
+
+        Parameters
+        ----------
+        X
+            Array of shape `(n_codes, d)` of dtype `np.float32`.
+        """
+        if cluster is not None:
+            for i in range(len(cluster)):
+                for item in cluster[i]:
+                    with open("ivf_cluster_"+str(i)+".txt", 'a') as file:
+                        line = f"{item[0]} {' '.join(map(str, item[1]))}\n"
+                        file.write(line)
+            
+    def load_from_text_file(self,file_path):
+        """
+        Load data from a text file.
+
+        Parameters:
+        - file_path: Path to the file.
+
+        Returns:
+        - List of tuples loaded from the file.
+        """
+        loaded_data = []
+        with open(file_path, 'r') as file:
+            for line in file.readlines():
+                values = line.strip().split(' ')
+                array_values = np.array([float(x) for x in values])
+                loaded_data.append((array_values[0], array_values[1:]))
+        return loaded_data
         
 # from typing_extensions import runtime
 @dataclass

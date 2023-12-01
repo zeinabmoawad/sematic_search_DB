@@ -48,7 +48,7 @@ class VecDBWorst:
         # centroids = self.ivfindex.IVF_search(query.copy())
         # return self.pqindex.search_using_IVF(query,centroids,top_k)
         if(self.data_size<=1000000):
-            return self.ivfindex.IVF_search_small_data(query=query,clusters=self.clusters,top_k=top_k)
+            return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)
         # if(self.data_size<1000000):
         #     _,indices = self.HNSW.search(query, self.ivfindex.nprops)
         #     print(indices)
@@ -71,11 +71,12 @@ class VecDBWorst:
         # Ivf ,PQ
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=1000,predict_batch_size=1000,iter=32,centroids_num= 16,nprops=4)
             # Training
-            self.clusters=self.ivfindex.IVF_train()
+            cluster=self.ivfindex.IVF_train()
+            self.ivfindex.add_clusters(cluster)
             for i in range(9):
-                predected_clustered=self.ivfindex.IVF_predict()
-                for i in range(len(self.clusters)):
-                    self.clusters[i].extend(predected_clustered[i])
+                cluster=self.ivfindex.IVF_predict()
+                self.ivfindex.add_clusters(cluster)
+        
         # if(self.data_size<1000000):
         #      # Ivf ,PQ
         #     self.ivfindex=ivf(data_path=self.file_path,train_batch_size=1000,predict_batch_size=1000,iter=32,centroids_num= 16,nprops=4)

@@ -72,7 +72,7 @@ if __name__ == "__main__":
     try:
         for i in range(1):
             db = VecDBWorst()
-            records_np = np.random.random((500000, 70))
+            records_np = np.random.random((10000, 70))
             records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
             db.insert_records(records_dict)
@@ -85,6 +85,10 @@ if __name__ == "__main__":
     for i in range(1000000):
         if os.path.exists("codes_"+str(i)+".pkl"):
             os.remove("codes_"+str(i)+".pkl")
+    # delete codes file
+    for i in range(1000000):
+        if os.path.exists("ivf_cluster_"+str(i)+".txt"):
+            os.remove("ivf_cluster_"+str(i)+".txt")
         else:
             break
     # records_np = np.concatenate([records_np, np.random.random((90000, 70))])
