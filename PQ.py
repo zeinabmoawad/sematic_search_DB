@@ -398,7 +398,7 @@ class CustomIndexPQ:
         distances = []
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
-            with open("codes_"+str(i)+".pkl", 'rb') as file:
+            with open("codes_"+str(centriods[i])+".pkl", 'rb') as file:
                 # if i == 0:
                 #     self.codes = pickle.load(file)
                 # else:
@@ -406,7 +406,7 @@ class CustomIndexPQ:
                 self.codes = pickle.load(file)
                 distances_all = self.compute_asymmetric_distances(Xq)
                 # print("Distance ",distances_all.shape)
-                distances_all = distances_all[distances_all[:,1].argsort()][:k*2,:]
+                distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
                 # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all

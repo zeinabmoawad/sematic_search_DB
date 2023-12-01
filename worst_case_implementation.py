@@ -61,7 +61,7 @@ class VecDBWorst:
         start = time.time()
         # Ivf ,PQ
 
-        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size= 10000,iter=200,centroids_num= 512,nprops=32)
+        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size= 10000,iter=200,centroids_num= 512,nprops=64)
         self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl")
         # Training
