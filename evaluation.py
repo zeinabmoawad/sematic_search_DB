@@ -70,15 +70,15 @@ if __name__ == "__main__":
 
     for i in range(1):
         db = VecDBWorst()
-        records_np = np.random.random((10000, 70))
+        records_np = np.random.random((100000, 70))
         records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
         _len = len(records_np)
         db.insert_records(records_dict)
-        res = run_queries(db, records_np, 10, 10)
-        print("Evaluation = ",eval(res))
+        # res = run_queries(db, records_np, 10, 10)
+        # print("Evaluation = ",eval(res))
     
     # delete codes file
-    for i in range(10000):
+    for i in range(1000000):
         if os.path.exists("codes_"+str(i)+".pkl"):
             os.remove("codes_"+str(i)+".pkl")
         else:

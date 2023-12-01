@@ -93,7 +93,7 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         return nearset_centers
-    
+
     def IVF_test(self,query,train_batch_clusters):
         l=[]
         query = query/np.linalg.norm(query)
@@ -181,8 +181,3 @@ def eval(results: List[Result]):
     print(counter)
     return sum(scores) / len(scores), sum(run_time)/len(run_time)
 
-
-
-results=run_queries(10, 10)
-# print(results)
-print(eval(results))

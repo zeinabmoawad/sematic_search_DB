@@ -8,7 +8,9 @@ import time
 class VecDBWorst:
     def __init__(self, file_path = "saved_db.csv", new_db = True) -> None:
         self.file_path = file_path
+        print("file_path = ",file_path)
         if new_db:
+            print("new db")
             # just open new file to delete the old one
             with open(self.file_path, "w") as fout:
                 # if you need to add any head to the file
@@ -21,8 +23,12 @@ class VecDBWorst:
                 id, embed = row["id"], row["embed"]
                 # row_str = f"{id}," + ",".join([str(e) for e in embed])
                 embeds = np.concatenate((np.array(id).reshape(1,1), np.array(embed).reshape(1,70)), axis=1).astype(np.float32)
+                # save in csv
+                # np.savetxt(fout, embeds, delimiter=",")
                 np.savetxt(fout, embeds, delimiter=",", fmt="%f")
+
                 # fout.write(f"{row_str}\n")
+        print("inserted ",len(rows)," rows")
         self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
@@ -57,14 +63,14 @@ class VecDBWorst:
         start = time.time()
         # Ivf ,PQ
 
-        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size= 10000,iter=500,centroids_num= 256,nprops=64)
+        self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size= 10000,iter=500,centroids_num= 256,nprops=8)
         self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= self.file_path,
                                    estimator_file="estimator.pkl",codes_file="codes.pkl")
         # Training
-
-        train_batch_clusters=self.ivfindex.IVF_train()
         # Clustering
         self.pqindex.train()
+        train_batch_clusters=self.ivfindex.IVF_train()
+
         self.pqindex.add(train_batch_clusters)
         
         # for i in range(9):
