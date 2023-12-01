@@ -5,9 +5,10 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 import time
-# from  worst_case_implementation import VecDBWorst
 from dataclasses import dataclass
 from typing import List
+import sys
+import pickle
 
 class ivf :
 
@@ -26,29 +27,51 @@ class ivf :
         self.predict_batch_size=predict_batch_size
         self.data_path=data_path
         self.prediction_count=0
-        # self.k=k
         self.nprops=nprops
         self.iter=iter
         self.centroids_num=centroids_num
 
     #Fetching file
+    # def fetch_from_csv(self,file_path,line_number,size):
+    #     with open(file_path, 'r') as fp:
+    #         x=fp.readlines()[line_number-1:line_number+size-1]
+    #         x=[np.fromstring(row, dtype=float, sep=',')for row in x]
+    #         return np.array(x)
+
     def fetch_from_csv(self,file_path,line_number,size):
-        row_size = 80*8 #size of each row in bytes
-        byte_offset = (line_number - 1) * row_size
+        row_size = 639 #size of each row in bytes
+        byte_offset = self.calculate_byte_offset(line_number, row_size)
         specific_rows=[]
         with open(file_path, 'r', encoding='utf-8') as csv_file:
             csv_file.seek(byte_offset)
             specific_row = csv_file.readline().strip()
             specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-            print("specific_row type: ",type(specific_row))
             specific_rows.append(specific_row)
-            print("size: ",size)
             for i in range(size-1):
-                
                 specific_row = csv_file.readline().strip()
                 specific_row = np.fromstring(specific_row, dtype=float, sep=',')
                 specific_rows.append(specific_row)
         return np.array(specific_rows)
+
+    def calculate_byte_offset(self,line_number, row_size):
+        # Calculate the byte offset based on line number and row size
+        def get_digit_count(number):
+        # Calculate the number of digits in a number
+            return len(str(number))
+        
+        count = get_digit_count(line_number)
+        if count == 1:
+            return line_number  * row_size + line_number
+        offset = 0
+        for i in range(count-1):
+            if i == 0:
+                offset = 10
+            else:
+                offset += (i+1)* (10 ** (i+1) - 10 ** i)
+        offset += count * (line_number-10**(count-1))
+        # print("offset: ",offset)
+        return line_number * row_size+offset
+
     #Assign every batch
     def preprocessing(self,xp,assignments):
         clustering_batch = [[] for _ in range(len(self.centroids))]
@@ -57,12 +80,9 @@ class ivf :
         return clustering_batch
     # train
     def IVF_train(self):
-        xp=self.fetch_from_csv(self.data_path,1,self.train_batch_size)
-        # ids = xp[:, 0]
-        # get the embed columns
+        xp=self.fetch_from_csv(self.data_path,0,self.train_batch_size)
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
-        # xp = xp/np.linalg.norm(xp, axis=1).reshape(-1,1)
         (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
         self.centroids=centroids
         clustering_batch=self.preprocessing(xp,assignments)
@@ -70,10 +90,9 @@ class ivf :
 
     #clustering_data
     def IVF_predict(self):
-        xp=self.fetch_from_csv(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count+1,self.predict_batch_size)
+        xp=self.fetch_from_csv(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
-        # xp=np.array([record/np.linalg.norm(record) for record in xp])
         self.prediction_count+=1
         assignments, _ = vq(embeds, self.centroids)
         clustering_batch=self.preprocessing(xp,assignments)
@@ -84,7 +103,8 @@ class ivf :
         cosine_similarity=vec1.dot(vec2.T).T / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
         return cosine_similarity
     
-    def IVF_search(self,query):
+    #nearest Centroids
+    def IVF_search_combo_data(self,query):
         l=[]
         query = query/np.linalg.norm(query)
         for centroid in self.centroids:
@@ -93,8 +113,9 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         return nearset_centers
-
-    def IVF_test(self,query,train_batch_clusters):
+    
+    #nearest idicies
+    def IVF_search_small_data(self,query,top_k):
         l=[]
         query = query/np.linalg.norm(query)
         for centroid in self.centroids:
@@ -102,27 +123,50 @@ class ivf :
             x= math.sqrt(2*abs(1-x))
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
-        print("centers len",len(nearset_centers))
         nearest=[]
+        clusters = self.load_from_text_file("ivf_cluster_"+str(0)+".txt")
         for c in nearset_centers:
-            for row in train_batch_clusters[c]:
-                x=self._cal_score(row[1], query[0])
-                x= math.sqrt(2*abs(1-x))
-                nearest.append({'index':row[0],'value':x})
-        sorted_list = sorted(nearest, key=lambda x: x['value'])[:10]
+                clusters = self.load_from_text_file("ivf_cluster_"+str(c)+".txt")
+                for row in clusters:
+                    x=self._cal_score(row[1], query[0])
+                    x= math.sqrt(2*abs(1-x))
+                    nearest.append({'index':row[0],'value':x})
+        sorted_list = sorted(nearest, key=lambda x: x['value'])[:top_k]
         return [d['index'] for d in sorted_list]
+    
+    def add_clusters(self,cluster:np.ndarray= None) -> None:
+        """Add vectors to the database (their encoded versions).
+
+        Parameters
+        ----------
+        X
+            Array of shape `(n_codes, d)` of dtype `np.float32`.
+        """
+        if cluster is not None:
+            for i in range(len(cluster)):
+                for item in cluster[i]:
+                    with open("ivf_cluster_"+str(i)+".txt", 'a') as file:
+                        line = f"{item[0]} {' '.join(map(str, item[1]))}\n"
+                        file.write(line)
+            
+    def load_from_text_file(self,file_path):
+        """
+        Load data from a text file.
+
+        Parameters:
+        - file_path: Path to the file.
+
+        Returns:
+        - List of tuples loaded from the file.
+        """
+        loaded_data = []
+        with open(file_path, 'r') as file:
+            for line in file.readlines():
+                values = line.strip().split(' ')
+                array_values = np.array([float(x) for x in values])
+                loaded_data.append((array_values[0], array_values[1:]))
+        return loaded_data
         
-
-# #Start clustrin
-# assignments,centroids=IVF_train(xp,num_part,iter)
-# clustering=IVF_clustering(assignments,num_part)
-
-# # # start Evaluation
-# # nearset_K_implemented=test_IVF_cosine(query,centroids,xp,clustering,k,nprops);
-# # print(nearset_K_implemented)
-
-# # print(len(assignments))
-
 # from typing_extensions import runtime
 @dataclass
 class Result:
@@ -132,27 +176,28 @@ class Result:
     actual_ids: List[int]
 def run_queries(top_k, num_runs):
     results = []
+    ivfindex=ivf(data_path="saved_db.csv",train_batch_size=1000000,predict_batch_size= 10000,iter=32,centroids_num= 1024,nprops=64)
+    train_batch_clusters=ivfindex.IVF_train()
+
     for _ in range(num_runs):
         query = np.random.random((1,70))
         query = query/np.linalg.norm(query)
         tic = time.time()
-        ivfindex=ivf(data_path="saved_db.csv",train_batch_size=10000,predict_batch_size= 10000,iter=32,centroids_num= 16,nprops=3)
-        train_batch_clusters=ivfindex.IVF_train()
         # Clustering
         db_ids=ivfindex.IVF_test(query,train_batch_clusters)
         toc = time.time()
         run_time = toc - tic
         print("time of search:")
         print(run_time)
-        print(db_ids)
-        np_rows=ivfindex.fetch_from_csv("saved_db.csv",1,10000)
+        # print(db_ids)
+        np_rows=ivfindex.fetch_from_csv("saved_db.csv",1,1000000)
         embeds = np_rows[:, 1:]
         np_rows = np.array([record/np.linalg.norm(record) for record in embeds])
         tic = time.time()
         actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
         toc = time.time()
         np_run_time = toc - tic
-        print(actual_ids[:30])
+        # print(actual_ids[:30])
         results.append(Result(run_time, top_k, db_ids, actual_ids))
     return results
 
@@ -180,4 +225,3 @@ def eval(results: List[Result]):
         scores.append(score)
     print(counter)
     return sum(scores) / len(scores), sum(run_time)/len(run_time)
-
