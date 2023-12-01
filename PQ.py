@@ -12,6 +12,7 @@ import sklearn.metrics.pairwise as pw
 import math
 from sklearn import preprocessing
 from scipy.cluster.vq import kmeans2,vq
+import heapq
 
 
 logger = logging.getLogger(__name__)
@@ -104,27 +105,41 @@ class CustomIndexPQ:
         ids = embeds[:, 0]
         # get the embed columns
         embeds = embeds[:, 1:]
-        # print the numpy array
-        # print("embeddings",embeds)
-        # print("ids",ids)
-        # print("shape of embeddings",embeds.shape)
-        # print("shape of ids",ids.shape)
-        # print("type of embeddings",embeds.dtype)
-        # print("type of ids",ids.dtype)
         return embeds,ids
 
 
-    def fetch_from_csv(file_path,line_number,size):
-        row_size = 80*8 #size of each row in bytes
-        byte_offset = (line_number - 1) * row_size
+    def fetch_from_csv(self,file_path,line_number,size):
+        row_size = 639 #size of each row in bytes
+        byte_offset = self.calculate_byte_offset(line_number, row_size)
+        specific_rows=[]
         with open(file_path, 'r', encoding='utf-8') as csv_file:
             csv_file.seek(byte_offset)
-            specific_rows = csv_file.readline().strip()
+            specific_row = csv_file.readline().strip()
+            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+            specific_rows.append(specific_row)
             for i in range(size-1):
-                specific_rows += csv_file.readline().strip()
+                specific_row = csv_file.readline().strip()
+                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+                specific_rows.append(specific_row)
         return specific_rows
 
-
+    def calculate_byte_offset(self,line_number, row_size):
+        # Calculate the byte offset based on line number and row size
+        def get_digit_count(number):
+        # Calculate the number of digits in a number
+            return len(str(number))
+        line_number = int(line_number)
+        count = get_digit_count(line_number)
+        if count == 1:
+            return line_number  * row_size + line_number
+        offset = 0
+        for i in range(count-1):
+            if i == 0:
+                offset = 10
+            else:
+                offset += (i+1)* (10 ** (i+1) - 10 ** i)
+        offset += count * (line_number-10**(count-1))
+        return line_number * row_size+offset
     def train(self) -> None:
         """Train all KMeans estimators.
 
@@ -244,13 +259,6 @@ class CustomIndexPQ:
         else:
             save_file(self.codes_file,self.encode()) #"codes.pkl"
 
-    def _cal_score(self, vec1, vec2):
-        dot_product = np.dot(vec1, vec2)
-        norm_vec1 = np.linalg.norm(vec1)
-        norm_vec2 = np.linalg.norm(vec2)
-        cosine_similarity = dot_product / (norm_vec1* norm_vec2)
-        return 2-2*cosine_similarity
-
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
 
@@ -299,7 +307,7 @@ class CustomIndexPQ:
 
 
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
-        print("codes shape = ",self.codes.shape)
+        # print("codes shape = ",self.codes.shape)
         for i in range(self.m):
             distances += distance_table[:, i, self.codes[:, i+1]]
         # append ids column to distances
@@ -363,7 +371,7 @@ class CustomIndexPQ:
             # distances[i] = distances_all[i][indices[i]]
         return indices[0]
         # return np.array(distances_all[:k,0]).astype(np.int32)
-    def search_using_IVF(self, Xq: np.ndarray,centriods:np.ndarray,k: int) -> tuple[np.ndarray, np.ndarray]:
+    def search_using_IVF(self, Xq: np.ndarray,centriods:np.ndarray,k: int,refine:bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Find k closest database codes to given queries.
 
         Parameters
@@ -397,20 +405,100 @@ class CustomIndexPQ:
                 #     self.codes = np.concatenate((self.codes,pickle.load(file)), axis=0)
                 self.codes = pickle.load(file)
                 distances_all = self.compute_asymmetric_distances(Xq)
-                print("Distance ",distances_all.shape)
-                distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
+                # print("Distance ",distances_all.shape)
+                distances_all = distances_all[distances_all[:,1].argsort()][:k*2,:]
                 # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all
                 else:
                     distances = np.concatenate((distances,distances_all), axis=0)
         
+
+        if refine:
+            # call refinement
+            return self.refinement(distances[:,0],Xq,k)
+        
         # sort distances_all by distances column not id column
-        print("Distance ",distances.shape)
         distances = distances[distances[:,1].argsort()][:k,:]
 
         # return id column of distances
         return distances[:,0].astype(np.int32)
+    def refinement(self,IDs,query,k):
+        """
+        refinement to output vectors
+        1- for 1000 IDs select their vectors from csv or db
+        2- compute cosine similarity with query vector
+        3- sort output and retieve best k IDs
+        """
+        # get vectors of corresponding ids
+        refine_vectors = []
+        for i in range(len(IDs)):
+            # get vector of corresponding id
+            vec = self.fetch_from_csv(self.path_to_db,int(IDs[i]),1)
+
+            # convert to 1d array
+            vec = np.array(vec).reshape(-1)
+
+            # remove id from vec
+            vec = vec[1:]
+
+            # convert to 1d array
+            # vec = np.array(vec).reshape(1,-1)
+            # compute cosine similarity with query
+            cosine_similarity_output = self._cal_score(vec, query.reshape(-1))
+
+            # append cosine_similarity_output 
+            refine_vectors.append([IDs[i],cosine_similarity_output])
+        
+        # covert to numpy array
+        refine_vectors = np.array(refine_vectors)
+
+        ids = self.top_k_largest_elements(refine_vectors,k)
+        return ids
+        # sort on cosine similarity
+        refine_vectors = refine_vectors[refine_vectors[:,1].argsort()]
+
+        # reverse to get highest cosine similarity
+        refine_vectors = refine_vectors[::-1]
+
+        # get top k IDs
+        refine_vectors = refine_vectors[:k]
+
+        # get IDs
+        ids2 = refine_vectors[:,0].astype(np.int32)
+        
+        # compare ids if not equal assert
+        assert np.array_equal(ids,ids2)
+
+        return refine_vectors[:,0].astype(np.int32)
+    
+    def _cal_score(self, vec1, vec2):
+        dot_product = np.dot(vec1, vec2)
+        norm_vec1 = np.linalg.norm(vec1)
+        norm_vec2 = np.linalg.norm(vec2)
+        cosine_similarity = dot_product / (norm_vec1 * norm_vec2)
+        return cosine_similarity
 
 
 
+    def top_k_largest_elements(self, nums, k):
+
+        indices = heapq.nlargest(k, range(len(nums)), key=lambda i: nums[i, 1])
+        # return ids of top k largest elements from list of indices
+        return nums[indices,0].astype(np.int32)
+        min_heap = []
+        
+        # Push the first k elements onto the heap
+        for num in nums[:k]:
+            heapq.heappush(min_heap, (-1*num[1],num[0]))
+        
+        # Continue pushing elements onto the heap while maintaining size k
+        for num in nums[k:]:
+            if num[1]*-1 < min_heap[0][0]:
+                heapq.heappop(min_heap)
+                heapq.heappush(min_heap, (num[1],num[0]))
+        
+        # The heap now contains the top k largest elements
+        # get the top k largest elements in sorted order
+        return [heapq.heappop(min_heap)[1] for _ in range(len(min_heap))]
+        # return list(min_heap)

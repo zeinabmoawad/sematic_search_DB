@@ -23,8 +23,12 @@ class VecDBWorst:
                 id, embed = row["id"], row["embed"]
                 # row_str = f"{id}," + ",".join([str(e) for e in embed])
                 embeds = np.concatenate((np.array(id).reshape(1,1), np.array(embed).reshape(1,70)), axis=1).astype(np.float32)
+                # save in csv
+                # np.savetxt(fout, embeds, delimiter=",")
                 np.savetxt(fout, embeds, delimiter=",", fmt="%f")
+
                 # fout.write(f"{row_str}\n")
+        print("inserted ",len(rows)," rows")
         self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
@@ -80,6 +84,20 @@ class VecDBWorst:
         #     self.HNSW= faiss.IndexHNSWFlat(70, 32)
         #     self.HNSW.add(self.ivfindex.centroids)
 
+        # self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size= 10000,iter=200,centroids_num= 512,nprops=32)
+        # self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
+        #                            estimator_file="estimator.pkl",codes_file="codes.pkl")
+        # # Training
+
+        # train_batch_clusters=self.ivfindex.IVF_train()
+        # # Clustering
+        # self.pqindex.train()
+        # self.pqindex.add(train_batch_clusters)
+        
+        # for i in range(9):
+        #     predict_batch_clusters=self.ivfindex.IVF_predict()
+        #     self.pqindex.add(predict_batch_clusters) 
+        # end time
         end = time.time()
         print("time to build index = ", end - start)
 
