@@ -21,7 +21,7 @@ def calculate_byte_offset(line_number, row_size):
 
 
 # Assuming you know the line number and the size of each row in bytes
-line_number = 10000 # Replace this with the desired line number
+line_number = 900000 # Replace this with the desired line number
 row_size = 639  # Replace this with the size of each row in bytes
 # row_size = 70*10+9
 # Calculate the byte offset of the specific row
@@ -38,7 +38,7 @@ with open('saved_db.csv', 'r', encoding='utf-8') as csv_file:
     # read from the byte offset 5 more rows
     # print size of each row
     print("size of each row: ",len(specific_row))
-    # for i in range(1):
+    # for i in range(10000):
     #     specific_row += csv_file.readline().strip()
 
 print(specific_row)

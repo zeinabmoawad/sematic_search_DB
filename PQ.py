@@ -117,11 +117,17 @@ class CustomIndexPQ:
     def fetch_from_csv(self,file_path,line_number,size):
         row_size = 639 #size of each row in bytes
         byte_offset = self.calculate_byte_offset(line_number, row_size)
+        specific_rows=[]
         with open(file_path, 'r', encoding='utf-8') as csv_file:
             csv_file.seek(byte_offset)
-            specific_rows = csv_file.readline().strip()
+            specific_row = csv_file.readline().strip()
+            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+            print("specific_row type: ",type(specific_row))
+            specific_rows.append(specific_row)
             for i in range(size-1):
-                specific_rows += csv_file.readline().strip()
+                specific_row = csv_file.readline().strip()
+                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+                specific_rows.append(specific_row)
         return specific_rows
 
     def calculate_byte_offset(self,line_number, row_size):
@@ -437,6 +443,9 @@ class CustomIndexPQ:
         for i in range(len(IDs)):
             # get vector of corresponding id
             vec = self.fetch_from_csv(self.path_to_db,IDs[i],1)
+
+            # convert to 1d array
+            vec = np.array(vec).reshape(-1)
 
             # compute cosine similarity with query
             cosine_similarity_output = self._cal_score(vec, query)
