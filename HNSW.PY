@@ -24,10 +24,6 @@ class ivf :
         self.HNSW= faiss.IndexHNSWFlat(70, 32)
         self.HNSW.add(self.ivfindex.centroids)
         
-     #Searching
-    def _cal_score(self,vec1, vec2):
-        cosine_similarity=vec1.dot(vec2.T).T / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-        return cosine_similarity
     def HNSW_search(self,query):
         _, nearset_centers= self.HNSW.search(query, self.nprops)
         return nearset_centers
