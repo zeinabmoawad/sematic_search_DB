@@ -2,7 +2,7 @@ import numpy as np
 import time
 from dataclasses import dataclass
 from typing import List
-import faiss
+# import faiss
 from PQ_old import CustomIndexPQ
 
 @dataclass

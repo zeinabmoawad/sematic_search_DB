@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 import sys
-import faiss
+# import faiss
 
 class ivf :
 

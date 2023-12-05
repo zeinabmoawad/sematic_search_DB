@@ -4,11 +4,12 @@ import numpy as np
 from PQ import CustomIndexPQ
 from ivf import ivf
 import time
-import faiss
+# import faiss
 
 class VecDBWorst:
     def __init__(self, file_path = "saved_db.csv", new_db = True) -> None:
         self.file_path = file_path
+        self.data_size = 0
         if new_db:
             # just open new file to delete the old one
             with open(self.file_path, "w") as fout:
@@ -17,7 +18,7 @@ class VecDBWorst:
     
     # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
     def insert_records(self, rows):
-        self.data_size=len(rows)
+        self.data_size+=len(rows)
         with open(self.file_path, "a+") as fout:
             for row in rows:
                 id, embed = row["id"], row["embed"]
@@ -45,10 +46,12 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         
-        # centroids = self.ivfindex.IVF_search(query.copy())
-        # return self.pqindex.search_using_IVF(query,centroids,top_k)
         if(self.data_size<=1000000):
-            return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)
+            return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
+        else:
+            centroids = self.ivfindex.IVF_search_combo_data(query=query)
+            return self.pqindex.search_using_IVF(query,centroids,top_k)
+
         # if(self.data_size<1000000):
         #     _,indices = self.HNSW.search(query, self.ivfindex.nprops)
         #     print(indices)
@@ -76,6 +79,19 @@ class VecDBWorst:
             for i in range(9):
                 cluster=self.ivfindex.IVF_predict()
                 self.ivfindex.add_clusters(cluster)
+        else:
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size=10000,iter=32,centroids_num= 128,nprops=32)
+            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
+                                   estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=10000,predict_batch_size=1000)
+            # Training
+            cluster=self.ivfindex.IVF_train()
+            self.pqindex.train()
+            self.ivfindex.add_clusters(cluster)
+            self.pqindex.add(cluster)
+            for i in range(9):
+                cluster=self.ivfindex.IVF_predict()
+                self.ivfindex.add_clusters(cluster)
+                self.pqindex.add(cluster)
         
         # if(self.data_size<1000000):
         #      # Ivf ,PQ

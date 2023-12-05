@@ -34,8 +34,10 @@ BITS2DTYPE = {
 def save_file(file_path,file_save):
     with open(file_path, 'wb') as file:
         pickle.dump(file_save, file)
+
+
 def load(file_path):
-    with open(file_path, 'rb') as file:
+    with open(file_path, 'r') as file:
         file_loaded = pickle.load(file)
     return file_loaded
 
@@ -68,6 +70,8 @@ class CustomIndexPQ:
         estimator_file:str,
         codes_file:str,
         path_to_db: str,
+        train_batch_size:int,
+        predict_batch_size: int,
         **estimator_kwargs: str | int
     ) -> None:
         if d % m != 0:
@@ -83,6 +87,9 @@ class CustomIndexPQ:
         self.estimator_file = estimator_file
         self.codes_file = codes_file
         self.path_to_db = path_to_db
+        self.train_batch_size = train_batch_size
+        self.predict_batch_size=predict_batch_size
+        self.prediction_count=0
 
         # self.estimators = [
         #     KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
@@ -153,8 +160,11 @@ class CustomIndexPQ:
             raise ValueError("Training multiple times is not allowed")
 
         # load data from csv file
-        X,ids = self.load_db()
         print("start training")
+        data = np.array(self.fetch_from_csv(self.path_to_db,0,self.train_batch_size))
+        # print(data)
+        X= data[:, 1:]
+
         self.estimators = [] 
         for i in range(self.m):
             # estimator = self.estimators[i]
@@ -163,7 +173,11 @@ class CustomIndexPQ:
             print("Finished KMeans for the ",i,"-th segment"," from ",self.m," segments")
             logger.info(f"Fitting KMeans for the {i}-th segment")
             # estimator.fit(X_i)
+            # print("centroids = ",centroids)
             self.estimators.append(centroids)
+        save_file(self.estimator_file,self.estimators)
+        # save_file('estimators.txt',self.estimators)
+
         self.is_trained = True
         # save estimators to csv file
         print("finished training")
@@ -187,25 +201,23 @@ class CustomIndexPQ:
 
         # loop over each row in csv file
         print("start encoding")
-        with open(self.path_to_db, "r") as fin:
-            for row in fin.readlines():
-                row_splits = row.split(",")
-                id = int(float(row_splits[0]))
-                # print("id = ", np.array([id]))
-                X = [float(e) for e in row_splits[1:]]
-                X = np.array(X).reshape(1,self.d)
-                code = np.empty((1, self.m), dtype=self.dtype)
-                for i in range(self.m):
-                    estimator = self.estimators[i]
-                    X_i = X[:, i * self.ds : (i + 1) * self.ds]
-                    code_i, _ = vq(X_i, estimator) 
-                    # code[:, i] = estimator.predict(X_i)
-                    code[:, i] = code_i
-                    # add id to code at beginning
-                # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-                # append to result
-                # print("code  ",code)
-                result.append(code)
+        xp=self.fetch_from_csv(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
+        id = int(float(xp[:,0]))
+        # print("id = ", np.array([id]))
+        X = [float(e) for e in xp[:, 1:]]
+        X = np.array(X).reshape(1,self.d)
+        code = np.empty((1, self.m), dtype=self.dtype)
+        for i in range(self.m):
+            estimator = self.estimators[i]
+            X_i = X[:, i * self.ds : (i + 1) * self.ds]
+            code_i, _ = vq(X_i, estimator) 
+            # code[:, i] = estimator.predict(X_i)
+            code[:, i] = code_i
+            # add id to code at beginning
+        # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+        # append to result
+        # print("code  ",code)
+        result.append(code)
         # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
         # print("resuls = ",result)
         result = np.array(result).reshape(-1,self.m )
@@ -252,9 +264,14 @@ class CustomIndexPQ:
         if data is not None:
             for i in range(len(data)):
                 # open pickle file with name i if exists or create new one and append to it
-                with open("codes_"+str(i)+".pkl", 'ab+') as file:
-                    result = self.encode_using_IVF(data[i])
-                    pickle.dump(result, file)
+                result = self.encode_using_IVF(data[i])
+                # print(result)
+                # print(result)
+                for item in result:
+                    # print(item)
+                    with open("codes_"+str(i)+".txt", 'a') as file:
+                        line = f"{item[0]} {' '.join(map(str, item[1:]))}\n"
+                        file.write(line)
 
         else:
             save_file(self.codes_file,self.encode()) #"codes.pkl"
@@ -371,6 +388,27 @@ class CustomIndexPQ:
             # distances[i] = distances_all[i][indices[i]]
         return indices[0]
         # return np.array(distances_all[:k,0]).astype(np.int32)
+
+    def load_file(self,file):
+        loaded_data = []
+        # print(file.readlines())
+        file_content = file.readlines()
+        # print(file_content)
+        for line in file_content:
+            # print('line = ',line)
+            values = line.strip().split(' ')
+            # print(values)
+            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            # array_values = np.array()
+            float_data = [int(item) for item in values]
+            # code = np.array(float_data)
+                
+            # array_values = np.array([int(x) for x in values])
+            # print(array_values)
+            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            loaded_data.append(float_data)
+        return np.array(loaded_data)
+    
     def search_using_IVF(self, Xq: np.ndarray,centriods:np.ndarray,k: int,refine:bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Find k closest database codes to given queries.
 
@@ -396,17 +434,19 @@ class CustomIndexPQ:
             # load estimators from pickle file
             self.estimators = load(self.estimator_file)
         distances = []
+
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
-            with open("codes_"+str(i)+".pkl", 'rb') as file:
+            with open("codes_"+str(centriods[i])+".txt", 'r') as file:
                 # if i == 0:
                 #     self.codes = pickle.load(file)
                 # else:
                 #     self.codes = np.concatenate((self.codes,pickle.load(file)), axis=0)
-                self.codes = pickle.load(file)
+                self.codes = self.load_file(file)
+                # print("hereee")
                 distances_all = self.compute_asymmetric_distances(Xq)
                 # print("Distance ",distances_all.shape)
-                distances_all = distances_all[distances_all[:,1].argsort()][:k*2,:]
+                distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
                 # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all
@@ -502,3 +542,38 @@ class CustomIndexPQ:
         # get the top k largest elements in sorted order
         return [heapq.heappop(min_heap)[1] for _ in range(len(min_heap))]
         # return list(min_heap)
+
+
+
+        # def add_clusters(self,cluster:np.ndarray= None) -> None:
+        # """Add vectors to the database (their encoded versions).
+
+        # Parameters
+        # ----------
+        # X
+        #     Array of shape (n_codes, d) of dtype np.float32.
+        # """
+        # if cluster is not None:
+        #     for i in range(len(cluster)):
+        #         for item in cluster[i]:
+        #             with open("ivf_cluster_"+str(i)+".txt", 'a') as file:
+        #                 line = f"{item[0]} {' '.join(map(str, item[1]))}\n"
+        #                 file.write(line)
+            
+    # def load_from_text_file(self,file_path):
+    #     """
+    #     Load data from a text file.
+
+    #     Parameters:
+    #     - file_path: Path to the file.
+
+    #     Returns:
+    #     - List of tuples loaded from the file.
+    #     """
+    #     loaded_data = []
+    #     with open(file_path, 'r') as file:
+    #         for line in file.readlines():
+    #             values = line.strip().split(' ')
+    #             array_values = np.array([float(x) for x in values])
+    #             loaded_data.append((array_values[0], array_values[1:]))
+    #     return loaded_data
