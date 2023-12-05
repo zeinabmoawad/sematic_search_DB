@@ -51,6 +51,7 @@ class ivf :
                 specific_row = csv_file.readline().strip()
                 specific_row = np.fromstring(specific_row, dtype=float, sep=',')
                 specific_rows.append(specific_row)
+        print(specific_rows[0])        
         return np.array(specific_rows)
 
     def calculate_byte_offset(self,line_number, row_size):
@@ -91,6 +92,8 @@ class ivf :
     #clustering_data
     def IVF_predict(self):
         xp=self.fetch_from_csv(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
+        # print(xp[0])
+        print(self.train_batch_size+self.predict_batch_size*self.prediction_count)
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
         self.prediction_count+=1
