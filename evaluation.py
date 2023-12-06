@@ -72,7 +72,7 @@ if __name__ == "__main__":
     try:
         for i in range(1):
             db = VecDBWorst()
-            records_np = np.random.random((10000, 70))
+            records_np = np.random.random((1000000, 70))
             records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
             db.insert_records(records_dict)
@@ -92,40 +92,40 @@ if __name__ == "__main__":
             break
 
  
-    records_np = np.concatenate([records_np, np.random.random((90000, 70))])
-    records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
-    _len = len(records_np)
-    db.insert_records(records_dict)
-    print("len = ",len(records_np))
-    res = run_queries(db, records_np, 5, 10)
-    print("Evaluation = ",eval(res))
+    # records_np = np.concatenate([records_np, np.random.random((90000, 70))])
+    # records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
+    # _len = len(records_np)
+    # db.insert_records(records_dict)
+    # print("len = ",len(records_np))
+    # res = run_queries(db, records_np, 5, 10)
+    # print("Evaluation = ",eval(res))
     
-        # delete codes file
-    for i in range(1000000):
-        if os.path.exists("codes_"+str(i)+".txt"):
-            os.remove("codes_"+str(i)+".txt")
-    for i in range(1000000):
-        if os.path.exists("ivf_cluster_"+str(i)+".txt"):
-            os.remove("ivf_cluster_"+str(i)+".txt")
-        else:
-            break
+    #     # delete codes file
+    # for i in range(1000000):
+    #     if os.path.exists("codes_"+str(i)+".txt"):
+    #         os.remove("codes_"+str(i)+".txt")
+    # for i in range(1000000):
+    #     if os.path.exists("ivf_cluster_"+str(i)+".txt"):
+    #         os.remove("ivf_cluster_"+str(i)+".txt")
+    #     else:
+    #         break
 
-    records_np = np.concatenate([records_np, np.random.random((900000, 70))])
-    records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
-    _len = len(records_np)
-    db.insert_records(records_dict)
-    res = run_queries(db, records_np, 5, 10)
-    print("Evaluation = ",eval(res))
+    # records_np = np.concatenate([records_np, np.random.random((900000, 70))])
+    # records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
+    # _len = len(records_np)
+    # db.insert_records(records_dict)
+    # res = run_queries(db, records_np, 5, 10)
+    # print("Evaluation = ",eval(res))
     
-    # delete codes file
-    for i in range(1000000):
-        if os.path.exists("codes_"+str(i)+".txt"):
-            os.remove("codes_"+str(i)+".txt")
-    for i in range(1000000):
-        if os.path.exists("ivf_cluster_"+str(i)+".txt"):
-            os.remove("ivf_cluster_"+str(i)+".txt")
-        else:
-            break
+    # # delete codes file
+    # for i in range(1000000):
+    #     if os.path.exists("codes_"+str(i)+".txt"):
+    #         os.remove("codes_"+str(i)+".txt")
+    # for i in range(1000000):
+    #     if os.path.exists("ivf_cluster_"+str(i)+".txt"):
+    #         os.remove("ivf_cluster_"+str(i)+".txt")
+    #     else:
+    #         break
 
     # records_np = np.concatenate([records_np, np.random.random((4000000, 70))])
     # records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
@@ -134,6 +134,15 @@ if __name__ == "__main__":
     # res = run_queries(db, records_np, 5, 10)
     # eval(res)
 
+    # # delete codes file
+    # for i in range(1000000):
+    #     if os.path.exists("codes_"+str(i)+".txt"):
+    #         os.remove("codes_"+str(i)+".txt")
+    # for i in range(1000000):
+    #     if os.path.exists("ivf_cluster_"+str(i)+".txt"):
+    #         os.remove("ivf_cluster_"+str(i)+".txt")
+    #     else:
+    #         break
     # records_np = np.concatenate([records_np, np.random.random((5000000, 70))])
     # records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
     # _len = len(records_np)

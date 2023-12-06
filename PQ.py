@@ -114,21 +114,26 @@ class CustomIndexPQ:
         embeds = embeds[:, 1:]
         return embeds,ids
 
-
+ #Fetching file
     def fetch_from_csv(self,file_path,line_number,size):
-        row_size = 639 #size of each row in bytes
-        byte_offset = self.calculate_byte_offset(line_number, row_size)
-        specific_rows=[]
-        with open(file_path, 'r', encoding='utf-8') as csv_file:
-            csv_file.seek(byte_offset)
-            specific_row = csv_file.readline().strip()
-            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-            specific_rows.append(specific_row)
-            for i in range(size-1):
-                specific_row = csv_file.readline().strip()
-                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-                specific_rows.append(specific_row)
-        return specific_rows
+        with open(file_path, 'r') as fp:
+            x=fp.readlines()[line_number-1:line_number+size-1]
+            x=[np.fromstring(row, dtype=float, sep=',')for row in x]
+            return np.array(x)
+    # def fetch_from_csv(self,file_path,line_number,size):
+    #     row_size = 639 #size of each row in bytes
+    #     byte_offset = self.calculate_byte_offset(line_number, row_size)
+    #     specific_rows=[]
+    #     with open(file_path, 'r', encoding='utf-8') as csv_file:
+    #         csv_file.seek(byte_offset)
+    #         specific_row = csv_file.readline().strip()
+    #         specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+    #         specific_rows.append(specific_row)
+    #         for i in range(size-1):
+    #             specific_row = csv_file.readline().strip()
+    #             specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+    #             specific_rows.append(specific_row)
+    #     return specific_rows
 
     def calculate_byte_offset(self,line_number, row_size):
         # Calculate the byte offset based on line number and row size
@@ -161,10 +166,9 @@ class CustomIndexPQ:
 
         # load data from csv file
         print("start training")
-        data = np.array(self.fetch_from_csv(self.path_to_db,0,self.train_batch_size))
+        data = np.array(self.fetch_from_csv(self.path_to_db,1,self.train_batch_size))
         # print(data)
         X= data[:, 1:]
-
         self.estimators = [] 
         for i in range(self.m):
             # estimator = self.estimators[i]
@@ -201,7 +205,7 @@ class CustomIndexPQ:
 
         # loop over each row in csv file
         print("start encoding")
-        xp=self.fetch_from_csv(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
+        xp=self.fetch_from_csv(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count+1,self.predict_batch_size)
         id = int(float(xp[:,0]))
         # print("id = ", np.array([id]))
         X = [float(e) for e in xp[:, 1:]]
