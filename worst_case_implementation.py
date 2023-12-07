@@ -34,6 +34,7 @@ class VecDBWorst:
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
     def retrive(self, query,top_k = 5):
+        print("================In Search=====================")
         # scores = []
         # with open(self.file_path, "r") as fin:
         #     for row in fin.readlines():
@@ -46,13 +47,13 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         
-        if(self.data_size<=1000000):
+        if(self.data_size<1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
         else:
-            centroids = self.ivfindex.IVF_search_combo_data(query=query)
-            return self.pqindex.search_using_IVF(query,centroids,top_k)
+          centroids = self.ivfindex.IVF_search_combo_data(query=query)
+          return self.pqindex.search_using_IVF(query,centroids,top_k)
 
-        # if(self.data_size<1000000):
+        # if(self.data_size<=1000000):
         #     _,indices = self.HNSW.search(query, self.ivfindex.nprops)
         #     print(indices)
         #     return np.array(indices)
@@ -67,7 +68,7 @@ class VecDBWorst:
     def _build_index(self):
         # start time
         start = time.time()
-        if(self.data_size<=1000000):
+        if(self.data_size<1000000):
           #10000
           if(self.data_size==10000):
             train_batch_size=10000
@@ -76,7 +77,7 @@ class VecDBWorst:
             nprops=4
             iter=32
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
-            # Training
+            #Training
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)
           #100000
@@ -91,34 +92,32 @@ class VecDBWorst:
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)
           #1000000
-          elif(self.data_size==1000000):
-            train_batch_size=100000
-            predict_batch_size=100000
-            centroids_num=128
-            nprops=32
-            iter=32
-            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
-            # Training
-            cluster=self.ivfindex.IVF_train()
-            self.ivfindex.add_clusters(cluster)
-            for i in range(9):
-                cluster=self.ivfindex.IVF_predict()
-                self.ivfindex.add_clusters(cluster)
+          # elif(self.data_size==1000000):
+          #   train_batch_size=100000
+          #   predict_batch_size=100000
+          #   centroids_num=128
+          #   nprops=32
+          #   iter=32
+          #   self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+          #   # Training
+          #   cluster=self.ivfindex.IVF_train()
+          #   self.ivfindex.add_clusters(cluster)
+          #   for i in range(9):
+          #       cluster=self.ivfindex.IVF_predict()
+          #       self.ivfindex.add_clusters(cluster)
         else:
           #5000000 ,1000000 ,2000000
-            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=10000,predict_batch_size=10000,iter=32,centroids_num= 128,nprops=32)
-            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
-                                   estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=10000,predict_batch_size=1000)
-            # Training
-            cluster=self.ivfindex.IVF_train()
-            self.pqindex.train()
-            self.ivfindex.add_clusters(cluster)
-            self.pqindex.add(cluster)
-            for i in range(9):
-                cluster=self.ivfindex.IVF_predict()
-                self.ivfindex.add_clusters(cluster)
-                self.pqindex.add(cluster)
-        
+          self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64)
+          self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
+                                  estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=100000,predict_batch_size=1000)
+          # Training
+          cluster=self.ivfindex.IVF_train()
+          self.pqindex.train()
+          self.pqindex.add(cluster)
+          for i in range(9):
+              cluster=self.ivfindex.IVF_predict()
+              self.pqindex.add(cluster)
+    
         # end time
         end = time.time()
         print("time to build index = ", end - start)
