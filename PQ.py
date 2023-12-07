@@ -13,6 +13,10 @@ import math
 from sklearn import preprocessing
 from scipy.cluster.vq import kmeans2,vq
 import heapq
+# !python evaluation.py
+import platform
+
+
 
 
 logger = logging.getLogger(__name__)
@@ -117,6 +121,8 @@ class CustomIndexPQ:
 
     def fetch_from_csv(self,file_path,line_number,size):
         row_size = 639 #size of each row in bytes
+        if platform.system() == "Linux":
+            row_size = 638
         byte_offset = self.calculate_byte_offset(line_number, row_size)
         specific_rows=[]
         with open(file_path, 'r', encoding='utf-8') as csv_file:
