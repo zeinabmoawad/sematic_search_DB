@@ -70,14 +70,17 @@ def eval(results: List[Result]):
 if __name__ == "__main__":
 
     try:
-        for i in range(1):
-            db = VecDBWorst()
+        db = VecDBWorst()
+        count = 5
+        for j in range(count):
+            # db = VecDBWorst()
             records_np = np.random.random((1000000, 70))
-            records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
+            records_dict = [{"id": i +j*1000000, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
             db.insert_records(records_dict)
-            res = run_queries(db, records_np, 5, 10)
-            print("Evaluation = ",eval(res))
+        db._build_index()
+        res = run_queries(db, records_np, 5, 10)
+        print("Evaluation = ",eval(res))
     except Exception as e:
         print("error: ",e)
 
