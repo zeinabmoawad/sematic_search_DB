@@ -10,6 +10,7 @@ from typing import List
 import sys
 import pickle
 import platform
+import struct
 
 class ivf :
 
@@ -39,41 +40,58 @@ class ivf :
     #         x=[np.fromstring(row, dtype=float, sep=',')for row in x]
     #         return np.array(x)
 
-    def fetch_from_csv(self,file_path,line_number,size):
-        row_size = 639 #size of each row in bytes
-        if platform.system() == "Linux":
-            row_size = 638
-        byte_offset = self.calculate_byte_offset(line_number, row_size)
-        specific_rows=[]
-        with open(file_path, 'r', encoding='utf-8') as csv_file:
-            csv_file.seek(byte_offset)
-            specific_row = csv_file.readline().strip()
-            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-            specific_rows.append(specific_row)
-            for i in range(size-1):
-                specific_row = csv_file.readline().strip()
-                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-                specific_rows.append(specific_row)
-        return np.array(specific_rows)
+    # def fetch_from_csv(self,file_path,line_number,size):
+    #     row_size = 639 #size of each row in bytes
+    #     if platform.system() == "Linux":
+    #         row_size = 638
+    #     byte_offset = self.calculate_byte_offset(line_number, row_size)
+    #     specific_rows=[]
+    #     with open(file_path, 'r', encoding='utf-8') as csv_file:
+    #         csv_file.seek(byte_offset)
+    #         specific_row = csv_file.readline().strip()
+    #         specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+    #         specific_rows.append(specific_row)
+    #         for i in range(size-1):
+    #             specific_row = csv_file.readline().strip()
+    #             specific_row = np.fromstring(specific_row, dtype=float, sep=',')
+    #             specific_rows.append(specific_row)
+    #     return np.array(specific_rows)
 
-    def calculate_byte_offset(self,line_number, row_size):
-        # Calculate the byte offset based on line number and row size
-        def get_digit_count(number):
-        # Calculate the number of digits in a number
-            return len(str(number))
+    # def calculate_byte_offset(self,line_number, row_size):
+    #     # Calculate the byte offset based on line number and row size
+    #     def get_digit_count(number):
+    #     # Calculate the number of digits in a number
+    #         return len(str(number))
         
-        count = get_digit_count(line_number)
-        if count == 1:
-            return line_number  * row_size + line_number
-        offset = 0
-        for i in range(count-1):
-            if i == 0:
-                offset = 10
-            else:
-                offset += (i+1)* (10 ** (i+1) - 10 ** i)
-        offset += count * (line_number-10**(count-1))
-        # print("offset: ",offset)
-        return line_number * row_size+offset
+    #     count = get_digit_count(line_number)
+    #     if count == 1:
+    #         return line_number  * row_size + line_number
+    #     offset = 0
+    #     for i in range(count-1):
+    #         if i == 0:
+    #             offset = 10
+    #         else:
+    #             offset += (i+1)* (10 ** (i+1) - 10 ** i)
+    #     offset += count * (line_number-10**(count-1))
+    #     # print("offset: ",offset)
+    #     return line_number * row_size+offset
+    def fetch_from_binary(self,file_path,line,size):
+      print(line, size)
+      with open(file_path, "rb") as binary_file:
+        binary_file.seek(line*564)
+        # Read an integer (4 bytes) from the current position
+        rows=[]
+        for i in range(size):
+          packed_integer = binary_file.read(4)
+          integer_value = struct.unpack('i', packed_integer)[0]
+          # Move the cursor to a specific position (e.g., 4 bytes from the beginning)
+          # Read a float (8 bytes) from the current position
+          packed_float = binary_file.read(8*70)
+          float_values = []
+          float_values = [struct.unpack('d', packed_float[i:i+8])[0] for i in range(0, len(packed_float), 8)]
+          float_values.insert(0,integer_value)
+          rows.append(float_values)
+        return np.array(rows)
 
     #Assign every batch
     def preprocessing(self,xp,assignments):
@@ -84,7 +102,8 @@ class ivf :
     # train
     def IVF_train(self):
         print("==================== In IVF Train =================")
-        xp=self.fetch_from_csv(self.data_path,0,self.train_batch_size)
+        xp=self.fetch_from_binary(self.data_path,0,self.train_batch_size)
+        print((xp)[:,0])
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
         (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
@@ -95,7 +114,7 @@ class ivf :
     #clustering_data
     def IVF_predict(self):
         print("==================== In IVF Predict =================")
-        xp=self.fetch_from_csv(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
+        xp=self.fetch_from_binary(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
         embeds = xp[:, 1:]
         embeds = np.array([record/np.linalg.norm(record) for record in embeds])
         self.prediction_count+=1
