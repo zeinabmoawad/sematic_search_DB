@@ -107,9 +107,9 @@ class VecDBWorst:
           #       self.ivfindex.add_clusters(cluster)
         else:
           #5000000 ,1000000 ,2000000
-          self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64)
-          self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
-                                  estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=100000,predict_batch_size=1000)
+          self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=100,centroids_num=2048,nprops=128)
+          self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
+                                  estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=200000,predict_batch_size=1000)
           # Training
           cluster=self.ivfindex.IVF_train()
           self.pqindex.train()

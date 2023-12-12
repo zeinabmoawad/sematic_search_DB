@@ -15,6 +15,7 @@ from scipy.cluster.vq import kmeans2,vq
 import heapq
 # !python evaluation.py
 import platform
+import time
 
 
 
@@ -444,15 +445,18 @@ class CustomIndexPQ:
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
             with open("codes_"+str(centriods[i])+".txt", 'r') as file:
-                # if i == 0:
-                #     self.codes = pickle.load(file)
-                # else:
-                #     self.codes = np.concatenate((self.codes,pickle.load(file)), axis=0)
                 self.codes = self.load_file(file)
-                # print("hereee")
+                
                 distances_all = self.compute_asymmetric_distances(Xq)
-                # print("Distance ",distances_all.shape)
-                distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
+                # calculate time
+                start_time = time.time()
+                distances_all = self.top_k_lowest_elements(distances_all,k*2)
+                end_time = time.time()
+                print("time of top k= ",end_time-start_time)
+                # start_time = time.time()
+                # distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
+                # end_time = time.time()
+                # print("time of sort= ",end_time-start_time)
                 # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all
@@ -462,7 +466,7 @@ class CustomIndexPQ:
 
         if refine:
             # call refinement
-            return self.refinement(distances[:,0],Xq,k)
+            return self.refinement(distances[:,0],Xq,k)[:,0]
         
         # sort distances_all by distances column not id column
         distances = distances[distances[:,1].argsort()][:k,:]
@@ -526,12 +530,22 @@ class CustomIndexPQ:
         return cosine_similarity
 
 
+    def top_k_lowest_elements(self, nums, k):
+
+        # return top k lowest full rows from nums without sorting
+        indices = heapq.nsmallest(k, range(len(nums)), key=lambda i: nums[i, 1])
+
+        return nums[indices,:].astype(np.int32)
 
     def top_k_largest_elements(self, nums, k):
 
         indices = heapq.nlargest(k, range(len(nums)), key=lambda i: nums[i, 1])
+        # return top k largest full rows from nums
+        return nums[indices,:].astype(np.int32)
+
         # return ids of top k largest elements from list of indices
-        return nums[indices,0].astype(np.int32)
+        # return nums[indices,0].astype(np.int32)
+
         min_heap = []
         
         # Push the first k elements onto the heap
