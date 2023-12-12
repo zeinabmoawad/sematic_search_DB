@@ -15,7 +15,7 @@ from scipy.cluster.vq import kmeans2,vq
 import heapq
 # !python evaluation.py
 import platform
-
+import struct
 
 
 
@@ -119,22 +119,22 @@ class CustomIndexPQ:
         return embeds,ids
 
 
-    def fetch_from_csv(self,file_path,line_number,size):
-        row_size = 639 #size of each row in bytes
-        if platform.system() == "Linux":
-            row_size = 638
-        byte_offset = self.calculate_byte_offset(line_number, row_size)
-        specific_rows=[]
-        with open(file_path, 'r', encoding='utf-8') as csv_file:
-            csv_file.seek(byte_offset)
-            specific_row = csv_file.readline().strip()
-            specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-            specific_rows.append(specific_row)
-            for i in range(size-1):
-                specific_row = csv_file.readline().strip()
-                specific_row = np.fromstring(specific_row, dtype=float, sep=',')
-                specific_rows.append(specific_row)
-        return specific_rows
+    def fetch_from_binary(self,file_path,line,size):
+      with open(file_path, "rb") as binary_file:
+        # Read an integer (4 bytes) from the current position
+        binary_file.seek(line*564)
+        rows=[]
+        for i in range(size):
+          packed_integer = binary_file.read(4)
+          integer_value = struct.unpack('i', packed_integer)[0]
+          # Move the cursor to a specific position (e.g., 4 bytes from the beginning)
+          # Read a float (8 bytes) from the current position
+          packed_float = binary_file.read(8*70)
+          float_values = []
+          float_values = [struct.unpack('d', packed_float[i:i+8])[0] for i in range(0, len(packed_float), 8)]
+          float_values.insert(0,integer_value)
+          rows.append(float_values)
+        return np.array(rows)
 
     def calculate_byte_offset(self,line_number, row_size):
         # Calculate the byte offset based on line number and row size
@@ -167,7 +167,7 @@ class CustomIndexPQ:
 
         # load data from csv file
         print("start training")
-        data = np.array(self.fetch_from_csv(self.path_to_db,0,self.train_batch_size))
+        data = np.array(self.fetch_from_binary(self.path_to_db,0,self.train_batch_size))
         # print(data)
         X= data[:, 1:]
 
@@ -207,7 +207,7 @@ class CustomIndexPQ:
 
         # loop over each row in csv file
         print("start encoding")
-        xp=self.fetch_from_csv(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
+        xp=self.fetch_from_binary(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
         id = int(float(xp[:,0]))
         # print("id = ", np.array([id]))
         X = [float(e) for e in xp[:, 1:]]
@@ -480,7 +480,7 @@ class CustomIndexPQ:
         refine_vectors = []
         for i in range(len(IDs)):
             # get vector of corresponding id
-            vec = self.fetch_from_csv(self.path_to_db,int(IDs[i]),1)
+            vec = self.fetch_from_binary(self.path_to_db,int(IDs[i]),1)
 
             # convert to 1d array
             vec = np.array(vec).reshape(-1)

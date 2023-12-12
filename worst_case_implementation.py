@@ -5,9 +5,10 @@ from PQ import CustomIndexPQ
 from ivf import ivf
 import time
 # import faiss
+import struct
 
 class VecDBWorst:
-    def __init__(self, file_path = "saved_db.csv", new_db = True) -> None:
+    def __init__(self, file_path = "saved_db.bin", new_db = True) -> None:
         self.file_path = file_path
         self.data_size = 0
         if new_db:
@@ -16,18 +17,25 @@ class VecDBWorst:
                 # if you need to add any head to the file
                 pass
     
-    # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
+      # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
+    def writing_binary_file(self,file_path,id,row):
+      # Open a binary file in write mode
+      with open(file_path, "ab") as binary_file:
+          # Write an integer (4 bytes)
+          binary_file.write(struct.pack('i', id))  
+          binary_file.write(struct.pack(f'{len(row)}d', *row))
+
     def insert_records(self, rows):
         self.data_size+=len(rows)
         with open(self.file_path, "a+") as fout:
             for row in rows:
                 id, embed = row["id"], row["embed"]
                 # row_str = f"{id}," + ",".join([str(e) for e in embed])
-                embeds = np.concatenate((np.array(id).reshape(1,1), np.array(embed).reshape(1,70)), axis=1).astype(np.float32)
+                # embeds = np.concatenate((np.array(id).reshape(1,1), np.array(embed).reshape(1,70)), axis=1).astype(np.float32)
                 # save in csv
                 # np.savetxt(fout, embeds, delimiter=",")
-                np.savetxt(fout, embeds, delimiter=",", fmt="%f")
-
+                # np.savetxt(fout, embeds, delimiter=",", fmt="%f")
+                self.writing_binary_file( self.file_path,row["id"],row["embed"])
                 # fout.write(f"{row_str}\n")
         print("inserted ",len(rows)," rows")
         self._build_index()
@@ -107,16 +115,43 @@ class VecDBWorst:
           #       self.ivfindex.add_clusters(cluster)
         else:
           #5000000 ,1000000 ,2000000
-          self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64)
-          self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 6,path_to_db= self.file_path,
-                                  estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=100000,predict_batch_size=1000)
-          # Training
-          cluster=self.ivfindex.IVF_train()
-          self.pqindex.train()
-          self.pqindex.add(cluster)
-          for i in range(9):
-              cluster=self.ivfindex.IVF_predict()
-              self.pqindex.add(cluster)
+          if(self.data_size==1000000):
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
+            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
+                                    estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=100000,predict_batch_size=1000)
+            # Training
+            cluster=self.ivfindex.IVF_train()
+            self.pqindex.train()
+            self.pqindex.add(cluster)
+            for i in range(9):
+                cluster=self.ivfindex.IVF_predict()
+                self.pqindex.add(cluster)
+
+          elif(self.data_size==2000000):
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=200000,predict_batch_size=200000,iter=64,centroids_num=512,nprops=64)
+            self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
+                                    estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=200000,predict_batch_size=1000)
+            # Training
+            cluster=self.ivfindex.IVF_train()
+            self.pqindex.train()
+            self.pqindex.add(cluster)
+            for i in range(9):
+                cluster=self.ivfindex.IVF_predict()
+                self.pqindex.add(cluster)
+
+          elif(self.data_size==5000000):
+            print("=========IN 5M=============")
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size=500000,iter=64,centroids_num=1024,nprops=128)
+            self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
+                                    estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=500000,predict_batch_size=1000)
+            # Training
+            cluster=self.ivfindex.IVF_train()
+            self.pqindex.train()
+            self.pqindex.add(cluster)
+            for i in range(9):
+                cluster=self.ivfindex.IVF_predict()
+                self.pqindex.add(cluster)
+
     
         # end time
         end = time.time()
