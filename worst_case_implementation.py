@@ -38,7 +38,7 @@ class VecDBWorst:
                 self.writing_binary_file( self.file_path,row["id"],row["embed"])
                 # fout.write(f"{row_str}\n")
         print("inserted ",len(rows)," rows")
-        # self._build_index()
+        self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
     def retrive(self, query,top_k = 5):

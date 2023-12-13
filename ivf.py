@@ -148,11 +148,11 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         nearest=[]
-        clusters = self.load_from_text_file("ivf_cluster_"+str(0)+".txt")
+        clusters = self.load_from_binary_file("ivf_cluster_"+str(0)+".bin")
         for c in nearset_centers:
-                clusters = self.load_from_text_file("ivf_cluster_"+str(c)+".txt")
+                clusters = self.load_from_binary_file("ivf_cluster_"+str(c)+".bin")
                 for row in clusters:
-                    x=self._cal_score(row[1], query[0])
+                    x=self._cal_score(np.array(row[1]), query[0])
                     x= math.sqrt(2*abs(1-x))
                     nearest.append({'index':row[0],'value':x})
         sorted_list = sorted(nearest, key=lambda x: x['value'])[:top_k]
@@ -164,16 +164,17 @@ class ivf :
         Parameters
         ----------
         X
-            Array of shape `(n_codes, d)` of dtype `np.float32`.
+            Array of shape (n_codes, d) of dtype np.float32.
         """
         if cluster is not None:
             for i in range(len(cluster)):
                 for item in cluster[i]:
-                    with open("ivf_cluster_"+str(i)+".txt", 'a') as file:
-                        line = f"{item[0]} {' '.join(map(str, item[1]))}\n"
-                        file.write(line)
+                    with open("ivf_cluster_"+str(i)+".bin", 'ab') as file:
+                    # print(item)
+                        file.write(struct.pack('i',int(item[0])))  
+                        file.write(struct.pack(f'{len(item[1])}d', *item[1]))
             
-    def load_from_text_file(self,file_path):
+    def load_from_binary_file(self,file_path):
         """
         Load data from a text file.
 
@@ -184,12 +185,23 @@ class ivf :
         - List of tuples loaded from the file.
         """
         loaded_data = []
-        with open(file_path, 'r') as file:
-            for line in file.readlines():
-                values = line.strip().split(' ')
-                array_values = np.array([float(x) for x in values])
-                loaded_data.append((array_values[0], array_values[1:]))
-        return loaded_data
+        with open(file_path, "rb") as binary_file:
+            # Loop through the file until the end
+            while True:
+                # Read an integer (4 bytes)
+                packed_integer = binary_file.read(4)
+                if not packed_integer:
+                    # Break the loop if there is no more data to read
+                    break
+                integer_value = struct.unpack('i', packed_integer)[0]
+
+                # Read a list of floats (8 bytes each)
+                packed_floats = binary_file.read(8 *70)  # Assuming a list of 3 floats per row
+                float_values = [struct.unpack('d', packed_floats[i:i+8])[0] for i in range(0, len(packed_floats), 8)]
+
+                # Append the result as a tuple (integer, list of floats)
+                loaded_data.append((integer_value, float_values))
+            return loaded_data
         
 # from typing_extensions import runtime
 @dataclass
