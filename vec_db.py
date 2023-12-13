@@ -29,37 +29,37 @@ class VecDB:
                 # change name of index file to load 100k indexer
                 self.ivf_path = "ivf_100k/centroids.pkl"
                 self.pq_path = "pq_100k/estimator.pkl"
-                self.codes_path = "pq_100k/codes.pkl"
+                self.codes_path = "pq_100k/"
             elif(self.data_size=="1m"):
                 self.data_size=1000000
                 # change name of index file to load 1m indexer
                 self.ivf_path = "ivf_1m/centroids.pkl"
                 self.pq_path = "pq_1m/estimator.pkl"
-                self.codes_path = "pq_1m/codes.pkl"
+                self.codes_path = "pq_1m/"
             elif(self.data_size=="5m"):
                 self.data_size=5000000
                 # change name of index file to load 5m indexer
                 self.ivf_path = "ivf_5m/centroids.pkl"
                 self.pq_path = "pq_5m/estimator.pkl"
-                self.codes_path = "pq_5m/codes.pkl"
+                self.codes_path = "pq_5m/"
             elif(self.data_size=="10m"):
                 self.data_size=10000000
                 # change name of index file to load 10m indexer
                 self.ivf_path = "ivf_10m/centroids.pkl"
                 self.pq_path = "pq_10m/estimator.pkl"
-                self.codes_path = "pq_10m/codes.pkl"
+                self.codes_path = "pq_10m/"
             elif(self.data_size=="15m"):
                 self.data_size=15000000
                 # change name of index file to load 15m indexer
                 self.ivf_path = "ivf_15m/centroids.pkl"
                 self.pq_path = "pq_15m/estimator.pkl"
-                self.codes_path = "pq_15m/codes.pkl"
+                self.codes_path = "pq_15m/"
             else:
                 self.data_size=20000000
                 # change name of index file to load 20m indexer
                 self.ivf_path = "ivf_20m/centroids.pkl"
                 self.pq_path = "pq_20m/estimator.pkl"
-                self.codes_path = "pq_20m/codes.pkl"
+                self.codes_path = "pq_20m/"
             
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,load=True,
@@ -147,7 +147,7 @@ class VecDB:
             os.mkdir("pq_1m")
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
-                                    estimator_file="pq_1m/estimator.pkl",codes_file="pq_1m/codes.pkl",train_batch_size=100000,predict_batch_size=1000)
+                                    estimator_file="pq_1m/estimator.pkl",codes_file="pq_1m/",train_batch_size=100000,predict_batch_size=1000)
             
             self.HNSW = HNSW(self.ivfindex.nprops)
             # Training
@@ -164,7 +164,7 @@ class VecDB:
             os.mkdir("pq_2m")
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=200000,predict_batch_size=200000,iter=64,centroids_num=512,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
-                                    estimator_file="pq_2m/estimator.pkl",codes_file="pq_2m/codes.pkl",train_batch_size=200000,predict_batch_size=1000)
+                                    estimator_file="pq_2m/estimator.pkl",codes_file="pq_2m/",train_batch_size=200000,predict_batch_size=1000)
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
@@ -180,7 +180,7 @@ class VecDB:
             os.mkdir("pq_5m")
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size=500000,iter=64,centroids_num=1024,nprops=128)
             self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
-                                    estimator_file="pq_5m/estimator.pkl",codes_file="pq_5m/codes.pkl",train_batch_size=500000,predict_batch_size=1000)
+                                    estimator_file="pq_5m/estimator.pkl",codes_file="pq_5m/",train_batch_size=500000,predict_batch_size=1000)
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
