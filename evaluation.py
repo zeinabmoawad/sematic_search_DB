@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 import os
-
+from vec_db import VecDB
 # import faiss
 
 AVG_OVERX_ROWS = 10
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     try:
         for i in range(1):
-            db = VecDBWorst()
+            db = VecDB()
             records_np = np.random.random((1000000, 70))
             records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
