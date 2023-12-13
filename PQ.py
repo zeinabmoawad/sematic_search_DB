@@ -276,9 +276,9 @@ class CustomIndexPQ:
                 # print(result)
                 for item in result:
                     # print(item)
-                    with open("codes_"+str(i)+".txt", 'a') as file:
-                        line = f"{item[0]} {' '.join(map(str, item[1:]))}\n"
-                        file.write(line)
+                    with open("codes_"+str(i)+".bin", 'ab') as file:
+                        file.write(struct.pack('i',int(item[0])))  
+                        file.write(struct.pack(f'{len(item[1:])}i', *item[1:]))
 
         else:
             save_file(self.codes_file,self.encode()) #"codes.pkl"
@@ -398,22 +398,21 @@ class CustomIndexPQ:
 
     def load_file(self,file):
         loaded_data = []
-        # print(file.readlines())
-        file_content = file.readlines()
-        # print(file_content)
-        for line in file_content:
-            # print('line = ',line)
-            values = line.strip().split(' ')
-            # print(values)
-            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-            # array_values = np.array()
-            float_data = [int(item) for item in values]
-            # code = np.array(float_data)
-                
-            # array_values = np.array([int(x) for x in values])
-            # print(array_values)
-            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-            loaded_data.append(float_data)
+        # Loop through the file until the end
+        while True:
+            # Read an integer (4 bytes)
+            packed_integer = file.read(4)
+            if not packed_integer:
+                # Break the loop if there is no more data to read
+                break
+            integer_value = struct.unpack('i', packed_integer)[0]
+
+            # Read a list of floats (8 bytes each)
+            packed_floats = file.read(4 *self.m)  # Assuming a list of 3 floats per row
+            float_values = [struct.unpack('i', packed_floats[i:i+4])[0] for i in range(0, len(packed_floats), 4)]
+            float_values.insert(0,integer_value)
+            # Append the result as a tuple (integer, list of floats)
+            loaded_data.append(float_values)
         return np.array(loaded_data)
     
     def search_using_IVF(self, Xq: np.ndarray,centriods:np.ndarray,k: int,refine:bool = True) -> tuple[np.ndarray, np.ndarray]:
@@ -444,7 +443,7 @@ class CustomIndexPQ:
 
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
-            with open("codes_"+str(centriods[i])+".txt", 'r') as file:
+            with open("codes_"+str(centriods[i])+".bin", 'rb') as file:
                 self.codes = self.load_file(file)
                 
                 distances_all = self.compute_asymmetric_distances(Xq)

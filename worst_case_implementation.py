@@ -55,7 +55,7 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         
-        if(self.data_size<1000000):
+        if(self.data_size>1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
         else:
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
@@ -76,7 +76,7 @@ class VecDBWorst:
     def _build_index(self):
         # start time
         start = time.time()
-        if(self.data_size<1000000):
+        if(self.data_size>1000000):
           #10000
           if(self.data_size==10000):
             train_batch_size=10000
@@ -115,15 +115,16 @@ class VecDBWorst:
           #       self.ivfindex.add_clusters(cluster)
         else:
           #5000000 ,1000000 ,2000000
-          if(self.data_size==1000000):
-            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
+          if(self.data_size==10000):
+            print("data_sze=10000")
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=5000,predict_batch_size=5000,iter=32,centroids_num=16,nprops=4)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
-                                    estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=100000,predict_batch_size=1000)
+                                    estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=5000,predict_batch_size=1000)
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
             self.pqindex.add(cluster)
-            for i in range(9):
+            for i in range(1):
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
 

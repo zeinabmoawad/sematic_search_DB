@@ -83,11 +83,11 @@ if __name__ == "__main__":
 
     # delete codes file
     for i in range(1000000):
-        if os.path.exists("codes_"+str(i)+".txt"):
-            os.remove("codes_"+str(i)+".txt")
+        if os.path.exists("codes_"+str(i)+".bin"):
+            os.remove("codes_"+str(i)+".bin")
     for i in range(1000000):
-        if os.path.exists("ivf_cluster_"+str(i)+".txt"):
-            os.remove("ivf_cluster_"+str(i)+".txt")
+        if os.path.exists("ivf_cluster_"+str(i)+".bin"):
+            os.remove("ivf_cluster_"+str(i)+".bin")
         else:
             break
 

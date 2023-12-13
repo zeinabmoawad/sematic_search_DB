@@ -3,6 +3,7 @@ saved_db.csv
 *.csv
 *.xlsx
 *.pkl
+*.bin
 __pycache__/ivf.cpython-311.pyc
 __pycache__/ivf.cpython-311.pyc
 __pycache__/PQ.cpython-311.pyc
