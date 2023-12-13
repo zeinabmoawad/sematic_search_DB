@@ -8,9 +8,9 @@ import time
 from dataclasses import dataclass
 from typing import List
 import sys
-# import faiss
+import faiss
 
-class ivf :
+class HNSW :
 
 # Parameters:
     def __init__(
@@ -22,7 +22,7 @@ class ivf :
     # train
     def HNSW_train(self,data):
         self.HNSW= faiss.IndexHNSWFlat(70, 32)
-        self.HNSW.add(self.ivfindex.centroids)
+        self.HNSW.add(data)
         
     def HNSW_search(self,query):
         _, nearset_centers= self.HNSW.search(query, self.nprops)
