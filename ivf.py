@@ -11,6 +11,20 @@ import sys
 import pickle
 import platform
 import struct
+import os
+
+
+def save_file(file_path, file_save):
+    if not os.path.exists(file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'wb') as file:
+        pickle.dump(file_save, file)
+
+
+def load(file_path):
+    with open(file_path, 'r') as file:
+        file_loaded = pickle.load(file)
+    return file_loaded
 
 class ivf :
 
@@ -23,7 +37,9 @@ class ivf :
         # k,
         nprops,
         iter,
-        centroids_num
+        centroids_num,
+        centroid_path,
+        load
         ) -> None:
         self.train_batch_size=train_batch_size
         self.predict_batch_size=predict_batch_size
@@ -32,6 +48,8 @@ class ivf :
         self.nprops=nprops
         self.iter=iter
         self.centroids_num=centroids_num
+        self.centroid_path = centroid_path
+        self.load = load
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
@@ -102,24 +120,34 @@ class ivf :
     # train
     def IVF_train(self):
         print("==================== In IVF Train =================")
-        xp=self.fetch_from_binary(self.data_path,0,self.train_batch_size)
-        print((xp)[:,0])
-        embeds = xp[:, 1:]
-        embeds = np.array([record/np.linalg.norm(record) for record in embeds])
-        (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
-        self.centroids=centroids
-        clustering_batch=self.preprocessing(xp,assignments)
-        return clustering_batch
+        if not self.load:
+            xp=self.fetch_from_binary(self.data_path,0,self.train_batch_size)
+            print((xp)[:,0])
+            embeds = xp[:, 1:]
+            embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+            (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
+            self.centroids=centroids
+            save_file(self.centroid_path, self.centroids)
+            clustering_batch=self.preprocessing(xp,assignments)
+            return clustering_batch
+
+        else:
+            self.centroids = load(self.centroid_path)
 
     #clustering_data
     def IVF_predict(self):
         print("==================== In IVF Predict =================")
         xp=self.fetch_from_binary(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
         embeds = xp[:, 1:]
-        embeds = np.array([record/np.linalg.norm(record) for record in embeds])
+        start = time.time()
+        embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+        print("normalization time: ", time.time()-start)
         self.prediction_count+=1
+        start = time.time()
         assignments, _ = vq(embeds, self.centroids)
+        print("vq time: ", time.time()-start)
         clustering_batch=self.preprocessing(xp,assignments)
+
         return clustering_batch
     
     #Searching
@@ -261,3 +289,6 @@ def eval(results: List[Result]):
         scores.append(score)
     print(counter)
     return sum(scores) / len(scores), sum(run_time)/len(run_time)
+
+
+

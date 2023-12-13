@@ -39,7 +39,7 @@ class VecDBWorst:
                 self.writing_binary_file( self.file_path,row["id"],row["embed"])
                 # fout.write(f"{row_str}\n")
         print("inserted ",len(rows)," rows")
-        self._build_index()
+        # self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
     def retrive(self, query,top_k = 5):
@@ -56,9 +56,9 @@ class VecDBWorst:
         # scores = sorted(scores)[:top_k]
         # return [s[1] for s in scores]
         
-        if(self.data_size>1000000):
+        if(self.data_size<1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
-        elif(self.data_size>5000000):
+        elif(self.data_size<5000000):
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
           return self.pqindex.search_using_IVF(query,centroids,top_k)
         else:
@@ -150,10 +150,12 @@ class VecDBWorst:
             self.ivfindex=ivf(data_path=self.file_path,train_batch_size=500000,predict_batch_size=500000,iter=64,centroids_num=1024,nprops=128)
             self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
                                     estimator_file="estimator.pkl",codes_file="codes.pkl",train_batch_size=500000,predict_batch_size=1000)
+            self.HNSW = HNSW(self.ivfindex.nprops)
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
             self.pqindex.add(cluster)
+            self.HNSW.HNSW_train(self.ivfindex.centroids)
             for i in range(9):
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
