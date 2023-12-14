@@ -59,7 +59,7 @@ class ivf :
         self.folder_path=folder_path
         self.load = load
         if self.load:
-            self.centroids = load(self.folder_path+"centroids.pkl")
+            self.centroids = load_centroids(self.folder_path+"centroids.pkl")
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
@@ -143,7 +143,7 @@ class ivf :
             clustering_batch=self.preprocessing(xp,assignments)
             return clustering_batch
         # else:
-        #     self.centroids = load(self.folder_path+self.centroid_path)
+        #     self.centroids = load_centroids(self.folder_path+self.centroid_path)
 
     #clustering_data
     def IVF_predict(self):

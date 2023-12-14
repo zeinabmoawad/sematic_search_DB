@@ -39,30 +39,30 @@ class VecDB:
             elif(self.data_size=="5m"):
                 self.data_size=5000000
                 # change name of index file to load 5m indexer
-                self.ivf_path = "ivf_5m/centroids.pkl"
+                self.ivf_path = "ivf_5m/"
                 self.pq_path = "pq_5m/estimator.pkl"
                 self.codes_path = "pq_5m/"
             elif(self.data_size=="10m"):
                 self.data_size=10000000
                 # change name of index file to load 10m indexer
-                self.ivf_path = "ivf_10m/centroids.pkl"
+                self.ivf_path = "ivf_10m/"
                 self.pq_path = "pq_10m/estimator.pkl"
                 self.codes_path = "pq_10m/"
             elif(self.data_size=="15m"):
                 self.data_size=15000000
                 # change name of index file to load 15m indexer
-                self.ivf_path = "ivf_15m/centroids.pkl"
+                self.ivf_path = "ivf_15m/"
                 self.pq_path = "pq_15m/estimator.pkl"
                 self.codes_path = "pq_15m/"
             else:
                 self.data_size=20000000
                 # change name of index file to load 20m indexer
-                self.ivf_path = "ivf_20m/centroids.pkl"
+                self.ivf_path = "ivf_20m/"
                 self.pq_path = "pq_20m/estimator.pkl"
                 self.codes_path = "pq_20m/"
             
-            self.ivfindex=ivf(data_path="saved_db.bin",centroid_path = self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32,load=True)
-            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= "saved_db.bin",load=True,
+            self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64,load=True)
+            self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= file_path,load=True,
                                     estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
             
             
@@ -94,7 +94,7 @@ class VecDB:
         
         if(self.data_size<1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
-        elif(self.data_size<5000000):
+        elif(self.data_size<20000000):
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
           return self.pqindex.search_using_IVF(query,centroids,top_k)
         else:
@@ -113,7 +113,7 @@ class VecDB:
             centroids_num=16
             nprops=4
             iter=32
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "centroids.pkl",folder_path="ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+            self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
             #Training
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)
@@ -126,7 +126,7 @@ class VecDB:
             centroids_num=128
             nprops=32
             iter=32
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_100k/centroids.pkl",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+            self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
             # Training
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)
@@ -150,7 +150,7 @@ class VecDB:
             # print("data_sze=10000")
             os.makedirs("ivf_1m", exist_ok=True)
             os.makedirs("pq_1m", exist_ok=True)
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_1m/centroids.pkl",train_batch_size=100000,predict_batch_size=100000,iter=64,centroids_num=1024,nprops=64)
+            self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_1m/",train_batch_size=100000,predict_batch_size=100000,iter=64,centroids_num=1024,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
                                     estimator_file="pq_1m/estimator.pkl",codes_file="pq_1m/",train_batch_size=100000,predict_batch_size=1000)
             
@@ -168,7 +168,7 @@ class VecDB:
           elif(self.data_size==2000000):
             os.makedirs("ivf_2m", exist_ok=True)
             os.makedirs("pq_2m", exist_ok=True)
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_2m/centroids.pkl",train_batch_size=200000,predict_batch_size=200000,iter=64,centroids_num=512,nprops=64)
+            self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_2m/",train_batch_size=200000,predict_batch_size=200000,iter=64,centroids_num=512,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
                                     estimator_file="pq_2m/estimator.pkl",codes_file="pq_2m/",train_batch_size=200000,predict_batch_size=1000)
             # Training
@@ -185,7 +185,7 @@ class VecDB:
             os.makedirs("ivf_5m", exist_ok=True)
             os.makedirs("pq_5m", exist_ok=True)
             
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_5m/centroids.pkl",train_batch_size=500000,predict_batch_size=500000,iter=100,centroids_num=1024,nprops=64)
+            self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_5m/",train_batch_size=500000,predict_batch_size=500000,iter=100,centroids_num=1024,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= self.file_path,
                                     estimator_file="pq_5m/estimator.pkl",codes_file="pq_5m/",train_batch_size=500000,predict_batch_size=1000)
             # Training

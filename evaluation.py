@@ -77,12 +77,12 @@ if __name__ == "__main__":
     # try:
     for i in range(1):
         # db = VecDB(file_path="saved_db_1m.bin",new_db=False)
-        db = VecDB(file_path="saved_db_5m.bin")
+        db = VecDB(file_path="saved_db_5m.bin",new_db=False)
         rng = np.random.default_rng(50)
         records_np = rng.random((5000000, 70))
-        records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
+        # records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
         _len = len(records_np)
-        db.insert_records(records_dict)
+        # db.insert_records(records_dict)
         # for i in range(4):
         #   records_np = np.concatenate([records_np, np.random.random((1000000, 70))])
         #   records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
@@ -98,6 +98,8 @@ if __name__ == "__main__":
     for i in range(1000000):
         if os.path.exists("codes_"+str(i)+".bin"):
             os.remove("codes_"+str(i)+".bin")
+        else:   
+            break
     for i in range(1000000):
         if os.path.exists("ivf_cluster_"+str(i)+".bin"):
             os.remove("ivf_cluster_"+str(i)+".bin")
