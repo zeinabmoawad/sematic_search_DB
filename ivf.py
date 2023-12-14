@@ -15,8 +15,8 @@ import os
 
 
 def save_file(file_path, file_save):
-    # if not os.path.exists(file_path):
-    #     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    if not os.path.exists(file_path):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, 'wb') as file:
         pickle.dump(file_save, file)
 
@@ -39,7 +39,7 @@ class ivf :
         iter,
         centroids_num,
         centroid_path,
-        load = False
+        load
         ) -> None:
         self.train_batch_size=train_batch_size
         self.predict_batch_size=predict_batch_size
@@ -50,8 +50,6 @@ class ivf :
         self.centroids_num=centroids_num
         self.centroid_path = centroid_path
         self.load = load
-        if self.load:
-            self.centroids = load(self.centroid_path)
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):

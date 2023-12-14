@@ -11,5 +11,5 @@ __pycache__/PQ.cpython-311.pyc
 __pycache__/worst_case_implementation.cpython-311.pyc
 __pycache__/HNSW.cpython-38.pyc
 __pycache__/vec_db.cpython-38.pyc
-ivf_*
-pq_*
+ivf*
+pq*
