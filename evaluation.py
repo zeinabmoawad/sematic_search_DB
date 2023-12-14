@@ -19,7 +19,10 @@ class Result:
 def run_queries(db, np_rows, top_k, num_runs):
     results = []
     for _ in range(num_runs):
-        query = np.random.random((1,70))
+        
+        rng = np.random.default_rng(10)
+        query = rng.random((1, 70), dtype=np.float32)
+        # query = np.random.random((1,70))
         
         tic = time.time()
         db_ids = db.retrive(query, top_k)
@@ -69,23 +72,25 @@ def eval(results: List[Result]):
 
 if __name__ == "__main__":
 
-    try:
-        for i in range(1):
-            db = VecDB()
-            records_np = np.random.random((1000000, 70))
-            records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
-            _len = len(records_np)
-            db.insert_records(records_dict)
-            # for i in range(4):
-            #   records_np = np.concatenate([records_np, np.random.random((1000000, 70))])
-            #   records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
-            #   _len = len(records_np)
-            #   db.insert_records(records_dict)
-            # db._build_index()
-            res = run_queries(db, records_np, 5, 10)
-            print("Evaluation = ",eval(res))
-    except Exception as e:
-        print("error: ",e)
+    # try:
+    for i in range(1):
+        # db = VecDB(file_path="saved_db_1m.bin",new_db=False)
+        db = VecDB(file_path="saved_db_5m.bin")
+        rng = np.random.default_rng(50)
+        records_np = rng.random((5000000, 70))
+        records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
+        _len = len(records_np)
+        db.insert_records(records_dict)
+        # for i in range(4):
+        #   records_np = np.concatenate([records_np, np.random.random((1000000, 70))])
+        #   records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
+        #   _len = len(records_np)
+        #   db.insert_records(records_dict)
+        # db._build_index()
+        res = run_queries(db, records_np, 5, 10)
+        print("Evaluation = ",eval(res))
+    # except Exception as e:
+    #     print("error: ",e)
 
     # delete codes file
     for i in range(1000000):

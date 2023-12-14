@@ -41,8 +41,8 @@ def save_file(file_path,file_save):
         pickle.dump(file_save, file)
 
 
-def load(file_path):
-    with open(file_path, 'r') as file:
+def load_estimators(file_path):
+    with open(file_path, 'rb') as file:
         file_loaded = pickle.load(file)
     return file_loaded
 
@@ -104,7 +104,7 @@ class CustomIndexPQ:
         # save_file(self.estimator_file,self.estimators) #"estimators.pkl"
         self.is_trained = False
         if load:
-            self.estimators = load(self.estimator_file)
+            self.estimators = load_estimators(self.estimator_file)
             self.is_trained = True
         self.ids = None
         self.dtype = BITS2DTYPE[nbits]
@@ -259,8 +259,11 @@ class CustomIndexPQ:
                 with open(self.codes_file+"codes_"+str(i)+".bin", 'ab') as file:
                     # write to file as a chunk as integer
                     # calculate length of all elements in result
-                    length = len(result)*(self.m+1)
-                    file.write(struct.pack(f'{length}i', *result.reshape(-1).astype(np.int32)))
+
+                    # length = len(result)*(self.m+1)
+                    # file.write(struct.pack(f'{length}i', *result.reshape(-1).astype(np.int32)))
+
+                    file.write(result.tobytes())
                     # for item in result:
                     # # print(item)
                     #     file.write(struct.pack('i',int(item[0])))  
@@ -352,7 +355,7 @@ class CustomIndexPQ:
 
         if self.codes is None:
             # load codes from pickle file
-            self.codes = load(self.codes_file)
+            self.codes = self.load_file(self.codes_file)
             # print("print(self.codes) =",self.codes)
             # print("Before ",self.codes.shape)
             # self.ids = self.codes[:,0]
@@ -360,7 +363,7 @@ class CustomIndexPQ:
             # print("After ",self.codes.shape)
         if self.estimators is None:
             # load estimators from pickle file
-            self.estimators = load(self.estimator_file)
+            self.estimators = load_estimators(self.estimator_file)
 
         # n_queries = len(X)
         # X = X / np.linalg.norm(X, axis=1,keepdims=True)
@@ -432,7 +435,7 @@ class CustomIndexPQ:
         # load codes from pickle file with name i in centroid list
         if self.estimators is None:
             # load estimators from pickle file
-            self.estimators = load(self.estimator_file)
+            self.estimators = load_estimators(self.estimator_file)
         distances = []
 
         start = time.time()

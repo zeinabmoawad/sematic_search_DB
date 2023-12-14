@@ -61,9 +61,9 @@ class VecDB:
                 self.pq_path = "pq_20m/estimator.pkl"
                 self.codes_path = "pq_20m/"
             
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
-            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,load=True,
-                                    estimator_file=self.pq_path,codes_file=self.codes_file,train_batch_size=100000,predict_batch_size=1000)
+            self.ivfindex=ivf(data_path="saved_db.bin",centroid_path = self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32,load=True)
+            self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= "saved_db.bin",load=True,
+                                    estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
             
             
       # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
@@ -80,8 +80,12 @@ class VecDB:
             for row in rows:
                 id, embed = row["id"], row["embed"]
                 self.writing_binary_file( self.file_path,row["id"],row["embed"])
+                # free memory
+                del row
 
         print("inserted successfully")
+        # free memory
+        del rows
         self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
@@ -181,8 +185,8 @@ class VecDB:
             os.makedirs("ivf_5m", exist_ok=True)
             os.makedirs("pq_5m", exist_ok=True)
             
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_5m/centroids.pkl",train_batch_size=500000,predict_batch_size=500000,iter=64,centroids_num=1024,nprops=128)
-            self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 7,path_to_db= self.file_path,
+            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_5m/centroids.pkl",train_batch_size=500000,predict_batch_size=500000,iter=100,centroids_num=1024,nprops=64)
+            self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= self.file_path,
                                     estimator_file="pq_5m/estimator.pkl",codes_file="pq_5m/",train_batch_size=500000,predict_batch_size=1000)
             # Training
             cluster=self.ivfindex.IVF_train()

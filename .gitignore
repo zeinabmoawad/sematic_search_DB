@@ -13,3 +13,4 @@ __pycache__/HNSW.cpython-38.pyc
 __pycache__/vec_db.cpython-38.pyc
 ivf_*
 pq_*
+*.zip
