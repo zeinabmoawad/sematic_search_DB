@@ -80,6 +80,7 @@ if __name__ == "__main__":
     db = VecDBIVF( new_db = True)
     
     db._build_index()
+    
     actual_ids = actual_sorted_ids_10k = np.argsort(vectors.dot(query.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
 
     res = run_queries(db, query, 5, actual_ids, 1)  # one run to make everything fresh and loaded

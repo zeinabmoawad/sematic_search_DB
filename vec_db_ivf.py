@@ -81,36 +81,36 @@ class VecDBIVF:
         if(self.data_size<1000000):
           #10000
             if(self.data_size==10000):
-                os.makedirs("ivf_10k", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_10k", exist_ok=True)
                 train_batch_size=10000
                 predict_batch_size=0
                 centroids_num=16
                 nprops=4
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 #Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
             elif(self.data_size==100000):
-                os.makedirs("ivf_100k", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_100k", exist_ok=True)
                 train_batch_size=100000
                 predict_batch_size=0
                 centroids_num=128
                 nprops=32
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
         else:
             if(self.data_size==1000000):
-                os.makedirs("ivf_1m", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_1m", exist_ok=True)
                 train_batch_size=100000
                 predict_batch_size=100000
                 centroids_num=256
                 nprops=32
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_1m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_1m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -119,13 +119,13 @@ class VecDBIVF:
                     self.ivfindex.add_clusters(cluster)
 
             elif(self.data_size==5000000):
-                os.makedirs("ivf_5m", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_5m", exist_ok=True)
                 train_batch_size=500000
                 predict_batch_size=500000
                 centroids_num=512
                 nprops=64
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_5m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_5m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -133,13 +133,13 @@ class VecDBIVF:
                     cluster=self.ivfindex.IVF_predict()
                     self.ivfindex.add_clusters(cluster)
             elif(self.data_size==15000000):
-                os.makedirs("ivf_15m", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_15m", exist_ok=True)
                 train_batch_size=1500000
                 predict_batch_size=1500000
                 centroids_num=1024
                 nprops=128
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_15m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_15m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -147,13 +147,13 @@ class VecDBIVF:
                     cluster=self.ivfindex.IVF_predict()
                     self.ivfindex.add_clusters(cluster)
             elif(self.data_size==20000000):
-                os.makedirs("ivf_20m", exist_ok=True)
+                os.makedirs("/content/drive/MyDrive/ivf_20m", exist_ok=True)
                 train_batch_size=1000000
                 predict_batch_size=1000000
                 centroids_num=1024
                 nprops=128
                 iter=64
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_20m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/ivf_20m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
