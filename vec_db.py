@@ -88,9 +88,9 @@ class VecDB:
     def retrive(self, query,top_k = 5):
         print("================In Search=====================")
         
-        if(self.data_size>1000000):
+        if(self.data_size<1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
-        elif(self.data_size>5000000):
+        elif(self.data_size<5000000):
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
           return self.pqindex.search_using_IVF(query,centroids,top_k)
         else:
@@ -146,16 +146,17 @@ class VecDB:
             # print("data_sze=10000")
             os.makedirs("ivf_1m", exist_ok=True)
             os.makedirs("pq_1m", exist_ok=True)
-            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_1m/centroids.pkl",train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=32)
+            self.ivfindex=ivf(data_path=self.file_path,centroid_path = "ivf_1m/centroids.pkl",train_batch_size=100000,predict_batch_size=100000,iter=64,centroids_num=1024,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
                                     estimator_file="pq_1m/estimator.pkl",codes_file="pq_1m/",train_batch_size=100000,predict_batch_size=1000)
             
-            self.HNSW = HNSW(self.ivfindex.nprops)
+            # self.HNSW = HNSW(self.ivfindex.nprops)
+
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
             self.pqindex.add(cluster)
-            self.HNSW.HNSW_train(self.ivfindex.centroids)
+            # self.HNSW.HNSW_train(self.ivfindex.centroids)
             for i in range(9):
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)

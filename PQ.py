@@ -28,11 +28,11 @@ BITS2DTYPE = {
     1: np.uint8,
     2: np.uint8,
     3: np.uint8,
-    5: np.uint8,
-    6: np.uint8,
-    7: np.uint8,
-    9: np.uint16,
-    10: np.uint16,
+    5: np.uint32,
+    6: np.uint32,
+    7: np.uint32,
+    9: np.uint32,
+    10: np.uint32,
     11: np.uint16
 }
 
@@ -156,6 +156,26 @@ class CustomIndexPQ:
                 offset += (i+1)* (10 ** (i+1) - 10 ** i)
         offset += count * (line_number-10**(count-1))
         return line_number * row_size+offset
+    
+    def load_txtfile(self,file):
+        loaded_data = []
+        # print(file.readlines())
+        file_content = file.readlines()
+        # print(file_content)
+        for line in file_content:
+            # print('line = ',line)
+            values = line.strip().split(' ')
+            # print(values)
+            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            # array_values = np.array()
+            float_data = [int(item) for item in values]
+            # code = np.array(float_data)
+
+            # array_values = np.array([int(x) for x in values])
+            # print(array_values)
+            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
+            loaded_data.append(float_data)
+        return np.array(loaded_data)
     def train(self) -> None:
         """Train all KMeans estimators.
 
@@ -192,46 +212,6 @@ class CustomIndexPQ:
         print("finished training")
 
 
-    def encode(self) -> np.ndarray:
-        """Encode original features into codes.
-
-        Parameters
-        ----------
-        X
-            Array of shape `(n_queries, d)` of dtype `np.float32`.
-
-        Returns
-        -------
-        result
-            Array of shape `(n_queries, m)` of dtype `np.uint8`.
-        """
-        # create 2d array
-        result = []
-
-        # loop over each row in csv file
-        print("start encoding")
-        xp=self.fetch_from_binary(self.path_to_db,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
-        id = int(float(xp[:,0]))
-        # print("id = ", np.array([id]))
-        X = [float(e) for e in xp[:, 1:]]
-        X = np.array(X).reshape(1,self.d)
-        code = np.empty((1, self.m), dtype=self.dtype)
-        for i in range(self.m):
-            estimator = self.estimators[i]
-            X_i = X[:, i * self.ds : (i + 1) * self.ds]
-            code_i, _ = vq(X_i, estimator) 
-            # code[:, i] = estimator.predict(X_i)
-            code[:, i] = code_i
-            # add id to code at beginning
-        # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-        # append to result
-        # print("code  ",code)
-        result.append(code)
-        # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
-        # print("resuls = ",result)
-        result = np.array(result).reshape(-1,self.m )
-        print("finished encoding")
-        return result
     def encode_using_IVF(self,X: np.ndarray) -> np.ndarray:
         # create 2d array
         result = []
@@ -270,20 +250,29 @@ class CustomIndexPQ:
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
         # self.codes = self.encode()
+        start = time.time()
+        debug = True
         if data is not None:
             for i in range(len(data)):
                 # open pickle file with name i if exists or create new one and append to it
                 result = self.encode_using_IVF(data[i])
-                # print(result)
-                # print(result)
-                for item in result:
-                    # print(item)
-                    with open("codes_"+str(i)+".bin", 'ab') as file:
-                        file.write(struct.pack('i',int(item[0])))  
-                        file.write(struct.pack(f'{len(item[1:])}i', *item[1:]))
+                with open(self.codes_file+"codes_"+str(i)+".bin", 'ab') as file:
+                    # write to file as a chunk as integer
+                    # calculate length of all elements in result
+                    length = len(result)*(self.m+1)
+                    file.write(struct.pack(f'{length}i', *result.reshape(-1).astype(np.int32)))
+                    # for item in result:
+                    # # print(item)
+                    #     file.write(struct.pack('i',int(item[0])))  
+                    #     file.write(struct.pack(f'{len(item[1:])}i', *item[1:]))
+                    #     assert len(item[1:]) == self.m
 
         else:
             save_file(self.codes_file,self.encode()) #"codes.pkl"
+            print("error")
+        end = time.time()
+        print("time of writing one batch= ",end-start)
+
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
@@ -443,17 +432,22 @@ class CustomIndexPQ:
             self.estimators = load(self.estimator_file)
         distances = []
 
+        start = time.time()
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
             with open(self.codes_file+"codes_"+str(centriods[i])+".bin", 'rb') as file:
                 self.codes = self.load_file(file)
+                # #----------------------------------------------------------------
+                # with open("codes_"+str(centriods[i])+".txt", 'r') as file2:
+                #     self.codes = self.load_txtfile(file2)
+                # #----------------------------------------------------------------
                 
                 distances_all = self.compute_asymmetric_distances(Xq)
                 # calculate time
-                start_time = time.time()
+                # start_time = time.time()
                 distances_all = self.top_k_lowest_elements(distances_all,k*2)
-                end_time = time.time()
-                print("time of top k= ",end_time-start_time)
+                # end_time = time.time()
+                # print("time of top k= ",end_time-start_time)
                 # start_time = time.time()
                 # distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
                 # end_time = time.time()
@@ -464,7 +458,8 @@ class CustomIndexPQ:
                 else:
                     distances = np.concatenate((distances,distances_all), axis=0)
         
-
+        end = time.time()
+        print("time of searching= ",end-start)
         if refine:
             # call refinement
             return self.refinement(distances[:,0],Xq,k)[:,0]
@@ -482,6 +477,7 @@ class CustomIndexPQ:
         3- sort output and retieve best k IDs
         """
         # get vectors of corresponding ids
+        start = time.time()
         refine_vectors = []
         for i in range(len(IDs)):
             # get vector of corresponding id
@@ -505,6 +501,8 @@ class CustomIndexPQ:
         refine_vectors = np.array(refine_vectors)
 
         ids = self.top_k_largest_elements(refine_vectors,k)
+        end = time.time()
+        print("time of refinement= ",end-start)
         return ids
         # sort on cosine similarity
         refine_vectors = refine_vectors[refine_vectors[:,1].argsort()]

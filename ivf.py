@@ -126,7 +126,9 @@ class ivf :
             xp=self.fetch_from_binary(self.data_path,0,self.train_batch_size)
             print((xp)[:,0])
             embeds = xp[:, 1:]
-            embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+            # embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+            
+            embeds = np.array([record/np.linalg.norm(record) for record in embeds])
             (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
             self.centroids=centroids
             save_file(self.centroid_path, self.centroids)
@@ -142,7 +144,8 @@ class ivf :
         xp=self.fetch_from_binary(self.data_path,self.train_batch_size+self.predict_batch_size*self.prediction_count,self.predict_batch_size)
         embeds = xp[:, 1:]
         start = time.time()
-        embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+        # embeds /= np.linalg.norm(embeds, axis=1, keepdims=True)
+        embeds = np.array([record/np.linalg.norm(record) for record in embeds])
         print("normalization time: ", time.time()-start)
         self.prediction_count+=1
         start = time.time()
@@ -160,9 +163,10 @@ class ivf :
     #nearest Centroids
     def IVF_search_combo_data(self,query):
         l=[]
-        query = query/np.linalg.norm(query)
+        copy_query = query.copy()
+        copy_query = copy_query/np.linalg.norm(copy_query)
         for centroid in self.centroids:
-            x=self._cal_score(query,centroid)
+            x=self._cal_score(copy_query,centroid)
             x= math.sqrt(2*abs(1-x))
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]

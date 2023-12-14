@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 import os
-
+from vec_db import VecDB
 # import faiss
 
 AVG_OVERX_ROWS = 10
@@ -72,16 +72,16 @@ if __name__ == "__main__":
     try:
         for i in range(1):
             db = VecDB()
-            records_np = np.random.random((10000, 70))
+            records_np = np.random.random((1000000, 70))
             records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
             db.insert_records(records_dict)
-            for i in range(4):
-              records_np = np.concatenate([records_np, np.random.random((1000000, 70))])
-              records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
-              _len = len(records_np)
-              db.insert_records(records_dict)
-            db._build_index()
+            # for i in range(4):
+            #   records_np = np.concatenate([records_np, np.random.random((1000000, 70))])
+            #   records_dict = [{"id": i + _len, "embed": list(row)} for i, row in enumerate(records_np[_len:])]
+            #   _len = len(records_np)
+            #   db.insert_records(records_dict)
+            # db._build_index()
             res = run_queries(db, records_np, 5, 10)
             print("Evaluation = ",eval(res))
     except Exception as e:
