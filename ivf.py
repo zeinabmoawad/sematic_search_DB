@@ -37,7 +37,7 @@ class ivf :
         nprops,
         iter,
         centroids_num,
-        centroid_path,
+        # centroid_path,
         folder_path,
         load = False
 
@@ -49,11 +49,11 @@ class ivf :
         self.nprops=nprops
         self.iter=iter
         self.centroids_num=centroids_num
-        self.centroid_path = centroid_path
+        # self.centroid_path = centroid_path
         self.folder_path=folder_path
         self.load = load
         if self.load:
-            self.centroids = load(self.folder_path+self.centroid_path)
+            self.centroids = load(self.folder_path+"centroids.pkl")
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
@@ -133,7 +133,7 @@ class ivf :
             embeds = np.array([record/np.linalg.norm(record) for record in embeds])
             (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
             self.centroids=centroids
-            save_file(self.folder_path+self.centroid_path, self.centroids)
+            save_file(self.folder_path+"centroids.pkl", self.centroids)
             clustering_batch=self.preprocessing(xp,assignments)
             return clustering_batch
         # else:
