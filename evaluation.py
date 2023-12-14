@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import List
 import os
 from vec_db import VecDB
+from vec_db_ivf import VecDBIVF
+
 # import faiss
 
 AVG_OVERX_ROWS = 10

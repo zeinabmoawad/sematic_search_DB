@@ -87,7 +87,7 @@ class VecDBWorst:
             centroids_num=16
             nprops=4
             iter=32
-            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+            self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops,folder_path="10000/",centroid_path="centroids.pkl")
             #Training
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)

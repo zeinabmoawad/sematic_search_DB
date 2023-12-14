@@ -40,12 +40,13 @@ class ivf :
         data_path,
         train_batch_size,
         predict_batch_size,
-        # k,
         nprops,
         iter,
         centroids_num,
-        centroid_path,
+        # centroid_path,
+        folder_path,
         load = False
+
         ) -> None:
         self.train_batch_size=train_batch_size
         self.predict_batch_size=predict_batch_size
@@ -54,10 +55,11 @@ class ivf :
         self.nprops=nprops
         self.iter=iter
         self.centroids_num=centroids_num
-        self.centroid_path = centroid_path
+        # self.centroid_path = centroid_path
+        self.folder_path=folder_path
         self.load = load
         if self.load:
-            self.centroids = load_centroids(self.centroid_path)
+            self.centroids = load(self.folder_path+"centroids.pkl")
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
@@ -137,12 +139,11 @@ class ivf :
             embeds = np.array([record/np.linalg.norm(record) for record in embeds])
             (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')
             self.centroids=centroids
-            save_file(self.centroid_path, self.centroids)
+            save_file(self.folder_path+"centroids.pkl", self.centroids)
             clustering_batch=self.preprocessing(xp,assignments)
             return clustering_batch
-
-        else:
-            self.centroids = load_centroids(self.centroid_path)
+        # else:
+        #     self.centroids = load(self.folder_path+self.centroid_path)
 
     #clustering_data
     def IVF_predict(self):
@@ -188,9 +189,9 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         nearest=[]
-        clusters = self.load_from_binary_file("ivf_cluster_"+str(0)+".bin")
+        clusters = self.load_from_binary_file(self.folder_path+"ivf_cluster_"+str(0)+".bin")
         for c in nearset_centers:
-                clusters = self.load_from_binary_file("ivf_cluster_"+str(c)+".bin")
+                clusters = self.load_from_binary_file(self.folder_path+"ivf_cluster_"+str(c)+".bin")
                 for row in clusters:
                     x=self._cal_score(np.array(row[1]), query[0])
                     x= math.sqrt(2*abs(1-x))
@@ -209,7 +210,7 @@ class ivf :
         if cluster is not None:
             for i in range(len(cluster)):
                 for item in cluster[i]:
-                    with open("ivf_cluster_"+str(i)+".bin", 'ab') as file:
+                    with open(self.folder_path+"ivf_cluster_"+str(i)+".bin", 'ab') as file:
                     # print(item)
                         file.write(struct.pack('i',int(item[0])))  
                         file.write(struct.pack(f'{len(item[1])}d', *item[1]))
@@ -243,64 +244,3 @@ class ivf :
                 loaded_data.append((integer_value, float_values))
             return loaded_data
         
-# from typing_extensions import runtime
-@dataclass
-class Result:
-    run_time: float
-    top_k: int
-    db_ids: List[int]
-    actual_ids: List[int]
-def run_queries(top_k, num_runs):
-    results = []
-    ivfindex=ivf(data_path="saved_db.csv",train_batch_size=1000000,predict_batch_size= 10000,iter=32,centroids_num= 1024,nprops=64)
-    train_batch_clusters=ivfindex.IVF_train()
-
-    for _ in range(num_runs):
-        query = np.random.random((1,70))
-        query = query/np.linalg.norm(query)
-        tic = time.time()
-        # Clustering
-        db_ids=ivfindex.IVF_test(query,train_batch_clusters)
-        toc = time.time()
-        run_time = toc - tic
-        print("time of search:")
-        print(run_time)
-        # print(db_ids)
-        np_rows=ivfindex.fetch_from_csv("saved_db.csv",1,1000000)
-        embeds = np_rows[:, 1:]
-        np_rows = np.array([record/np.linalg.norm(record) for record in embeds])
-        tic = time.time()
-        actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
-        toc = time.time()
-        np_run_time = toc - tic
-        # print(actual_ids[:30])
-        results.append(Result(run_time, top_k, db_ids, actual_ids))
-    return results
-
-def eval(results: List[Result]):
-    # scores are negative. So getting 0 is the best score.
-    scores = []
-    run_time = []
-    counter = 0
-    for res in results:
-        run_time.append(res.run_time)
-        # case for retireving number not equal to top_k, socre will be the lowest
-        if len(set(res.db_ids)) != res.top_k or len(res.db_ids) != res.top_k:
-            scores.append( -1 * len(res.actual_ids) * res.top_k)
-            continue
-        score = 0
-        for id in res.db_ids:
-            try:
-                ind = res.actual_ids.index(id)
-                if ind > res.top_k * 3:
-                    score -= ind
-                else :
-                    counter += 1
-            except:
-                score -= len(res.actual_ids)
-        scores.append(score)
-    print(counter)
-    return sum(scores) / len(scores), sum(run_time)/len(run_time)
-
-
-
