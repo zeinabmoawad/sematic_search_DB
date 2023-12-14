@@ -77,7 +77,6 @@ class CustomIndexPQ:
         path_to_db: str,
         train_batch_size:int,
         predict_batch_size: int,
-        load = False,
         **estimator_kwargs: str | int
     ) -> None:
         if d % m != 0:
@@ -102,11 +101,10 @@ class CustomIndexPQ:
         # ]
         # logger.info(f"Creating following estimators: {self.estimators[0]!r}")
         # save_file(self.estimator_file,self.estimators) #"estimators.pkl"
+
         self.is_trained = False
-        if load:
-            self.estimators = load(self.estimator_file)
-            self.is_trained = True
         self.ids = None
+
         self.dtype = BITS2DTYPE[nbits]
         self.dtype_orig = np.float32
 
