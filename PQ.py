@@ -445,7 +445,7 @@ class CustomIndexPQ:
 
         for i in range(len(centriods)):
             # open pickle file with name i if exists or create new one and append to it
-            with open(self.codes_file+"codes_"+str(centriods[i])+".bin", 'rb') as file:
+            with open("codes_"+str(centriods[i])+".bin", 'rb') as file:
                 self.codes = self.load_file(file)
                 
                 distances_all = self.compute_asymmetric_distances(Xq)
