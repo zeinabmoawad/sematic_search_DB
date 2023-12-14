@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 import os
-
+from vec_db import VecDB
 # import faiss
 
 AVG_OVERX_ROWS = 10
