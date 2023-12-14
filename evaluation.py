@@ -71,8 +71,8 @@ if __name__ == "__main__":
 
     try:
         for i in range(1):
-            db = VecDBWorst()
-            records_np = np.random.random((1000000, 70))
+            db = VecDB()
+            records_np = np.random.random((10000, 70))
             records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
             _len = len(records_np)
             db.insert_records(records_dict)
