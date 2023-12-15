@@ -23,10 +23,12 @@ class VecDB:
             self.data_size = self.file_path[self.file_path.rfind("_")+1:self.file_path.rfind(".")]
             if(self.data_size=="100k"):
                 self.data_size=100000
-                # change name of index file to load 100k indexer
                 self.ivf_path = "ivf_100k/"
-                self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64,load=True)
-            
+                self.pq_path = "pq_100k/estimator.pkl"
+                self.codes_path = "pq_100k/"
+                self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=0,iter=32,centroids_num=128,nprops=32,load=True)
+                self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= file_path,load=True,
+                                    estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
             elif(self.data_size=="1m"):
                 self.data_size=1000000
                 # change name of index file to load 1m indexer
@@ -101,7 +103,7 @@ class VecDB:
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
     def retrive(self, query,top_k = 5):
         
-        if(self.data_size<1000000):
+        if(self.data_size<100000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
         elif(self.data_size<30000000):
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
