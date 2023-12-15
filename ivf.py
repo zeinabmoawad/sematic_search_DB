@@ -56,7 +56,6 @@ class ivf :
             self.centroids = load_centroids(self.folder_path+"centroids.pkl")
 
     def fetch_from_binary(self,file_path,line,size):
-      print(line, size)
       with open(file_path, "rb") as binary_file:
         binary_file.seek(line*564)
         # Read an integer (4 bytes) from the current position
@@ -83,7 +82,6 @@ class ivf :
     def IVF_train(self):
         if not self.load:
             xp=self.fetch_from_binary(self.data_path,0,self.train_batch_size)
-            print((xp)[:,0])
             embeds = xp[:, 1:]
             embeds = np.array([record/np.linalg.norm(record) for record in embeds])
             (centroids, assignments) = kmeans2(embeds, self.centroids_num, self.iter,minit='points')

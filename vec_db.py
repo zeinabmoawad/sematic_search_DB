@@ -25,11 +25,7 @@ class VecDB:
                 self.data_size=100000
                 # change name of index file to load 100k indexer
                 self.ivf_path = "ivf_100k/"
-                self.pq_path = "pq_100k/estimator.pkl"
-                self.codes_path = "pq_100k/"
                 self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64,load=True)
-                self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= file_path,load=True,
-                                    estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
             
             elif(self.data_size=="1m"):
                 self.data_size=1000000
@@ -130,7 +126,6 @@ class VecDB:
           #100000
           elif(self.data_size==100000):
             os.makedirs("ivf_100k", exist_ok=True)
-            os.makedirs("pq_100k", exist_ok=True)
             train_batch_size=100000
             predict_batch_size=0
             centroids_num=128
