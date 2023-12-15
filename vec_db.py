@@ -27,7 +27,7 @@ class VecDB:
             if(self.data_size=="100k"):
                 self.data_size=100000
                 # change name of index file to load 100k indexer
-                self.ivf_path = "ivf_100k/centroids.pkl"
+                self.ivf_path = "ivf_100k/"
                 self.pq_path = "pq_100k/estimator.pkl"
                 self.codes_path = "pq_100k/"
                 self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64,load=True)
@@ -37,7 +37,7 @@ class VecDB:
             elif(self.data_size=="1m"):
                 self.data_size=1000000
                 # change name of index file to load 1m indexer
-                self.ivf_path = "ivf_1m/centroids.pkl"
+                self.ivf_path = "ivf_1m/"
                 self.pq_path = "pq_1m/estimator.pkl"
                 self.codes_path = "pq_1m/"
                 self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=1024,nprops=64,load=True)

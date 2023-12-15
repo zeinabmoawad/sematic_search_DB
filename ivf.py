@@ -21,8 +21,13 @@ def save_file(file_path, file_save):
         pickle.dump(file_save, file)
 
 
-def load(file_path):
-    with open(file_path, 'r') as file:
+def load_centroids(file_path):
+    print("Loading centroids from: ", file_path)
+    # check if file exists
+    if not os.path.exists(file_path):
+        print("File does not exist")
+        exit()
+    with open(file_path, 'rb') as file:
         file_loaded = pickle.load(file)
     return file_loaded
 
@@ -53,7 +58,7 @@ class ivf :
         self.folder_path=folder_path
         self.load = load
         if self.load:
-            self.centroids = load(self.folder_path+"centroids.pkl")
+            self.centroids = load_centroids(self.folder_path+"centroids.pkl")
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
