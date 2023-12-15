@@ -21,14 +21,8 @@ def save_file(file_path, file_save):
         pickle.dump(file_save, file)
 
 
-
-def load_centroids(file_path):
-    print("Loading centroids from: ", file_path)
-    # check if file exists
-    if not os.path.exists(file_path):
-        print("File does not exist")
-        exit()
-    with open(file_path, 'rb') as file:
+def load(file_path):
+    with open(file_path, 'r') as file:
         file_loaded = pickle.load(file)
     return file_loaded
 
@@ -59,7 +53,7 @@ class ivf :
         self.folder_path=folder_path
         self.load = load
         if self.load:
-            self.centroids = load_centroids(self.folder_path+"centroids.pkl")
+            self.centroids = load(self.folder_path+"centroids.pkl")
 
     #Fetching file
     # def fetch_from_csv(self,file_path,line_number,size):
@@ -143,7 +137,7 @@ class ivf :
             clustering_batch=self.preprocessing(xp,assignments)
             return clustering_batch
         # else:
-        #     self.centroids = load_centroids(self.folder_path+self.centroid_path)
+        #     self.centroids = load(self.folder_path+self.centroid_path)
 
     #clustering_data
     def IVF_predict(self):

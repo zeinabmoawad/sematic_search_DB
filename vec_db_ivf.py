@@ -12,10 +12,10 @@ import os
 class VecDBIVF:
     def __init__(self, file_path = "saved_db.bin", new_db = True) -> None:
         self.file_path = file_path
-        self.data_size = 0
+        self.data_size = 10000
         if new_db:
             # just open new file to delete the old one
-            with open(self.file_path, "w") as fout:
+            # with open(self.file_path, "w") as fout:
                 # if you need to add any head to the file
                 pass
         else:
@@ -60,9 +60,9 @@ class VecDBIVF:
           binary_file.write(struct.pack(f'{len(row)}d', *row))
 
     def insert_records(self, rows):
-        self.data_size+=len(rows)
         with open(self.file_path, "a+") as fout:
             for row in rows:
+                # print(row)
                 id, embed = row["id"], row["embed"]
                 self.writing_binary_file( self.file_path,row["id"],row["embed"])
 
@@ -73,44 +73,45 @@ class VecDBIVF:
     def retrive(self, query,top_k = 5):
         print("================In Search=====================")
         
-        self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
+        return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
         
     def _build_index(self):
         # start time
         start = time.time()
+        print(self.data_size)
         if(self.data_size<1000000):
           #10000
             if(self.data_size==10000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_10k", exist_ok=True)
+                os.makedirs("ivf_10k", exist_ok=True)
                 train_batch_size=10000
                 predict_batch_size=0
                 centroids_num=16
                 nprops=4
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_10k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 #Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
             elif(self.data_size==100000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_100k", exist_ok=True)
+                os.makedirs("ivf_100k", exist_ok=True)
                 train_batch_size=100000
                 predict_batch_size=0
                 centroids_num=128
                 nprops=32
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
         else:
             if(self.data_size==1000000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_1m", exist_ok=True)
+                os.makedirs("ivf_1m", exist_ok=True)
                 train_batch_size=100000
                 predict_batch_size=100000
                 centroids_num=256
                 nprops=32
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_1m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_1m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -119,13 +120,13 @@ class VecDBIVF:
                     self.ivfindex.add_clusters(cluster)
 
             elif(self.data_size==5000000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_5m", exist_ok=True)
+                os.makedirs("ivf_5m", exist_ok=True)
                 train_batch_size=500000
                 predict_batch_size=500000
                 centroids_num=512
                 nprops=64
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_5m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_5m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -133,13 +134,13 @@ class VecDBIVF:
                     cluster=self.ivfindex.IVF_predict()
                     self.ivfindex.add_clusters(cluster)
             elif(self.data_size==15000000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_15m", exist_ok=True)
+                os.makedirs("ivf_15m", exist_ok=True)
                 train_batch_size=1500000
                 predict_batch_size=1500000
                 centroids_num=1024
                 nprops=128
                 iter=32
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_15m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_15m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)
@@ -147,13 +148,13 @@ class VecDBIVF:
                     cluster=self.ivfindex.IVF_predict()
                     self.ivfindex.add_clusters(cluster)
             elif(self.data_size==20000000):
-                os.makedirs("/content/drive/MyDrive/Semantic Search Engine/ivf_20m", exist_ok=True)
+                os.makedirs("ivf_20m", exist_ok=True)
                 train_batch_size=1000000
                 predict_batch_size=1000000
                 centroids_num=1024
                 nprops=128
                 iter=64
-                self.ivfindex=ivf(data_path=self.file_path,folder_path="/content/drive/MyDrive/Semantic Search Engine/ivf_20m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
+                self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_20m/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training
                 cluster=self.ivfindex.IVF_train()
                 self.ivfindex.add_clusters(cluster)

@@ -69,10 +69,10 @@ if __name__ == "__main__":
     
     
     QUERY_SEED_NUMBER = 10
-    DB_SEED_NUMBER = 20
+    DB_SEED_NUMBER = 50
 
     rng = np.random.default_rng(DB_SEED_NUMBER)
-    vectors = rng.random((10**5, 70), dtype=np.float32)
+    vectors = rng.random((10**4, 70), dtype=np.float32)
 
     rng = np.random.default_rng(QUERY_SEED_NUMBER)
     query = rng.random((1, 70), dtype=np.float32)
@@ -89,5 +89,28 @@ if __name__ == "__main__":
     to_print = f"100K\tscore\t{eval[0]}\ttime\t{eval[1]:.2f}\tRAM\t{mem:.2f} MB"
     to_print_arr.append(to_print)
     print(to_print)
+# # try:
+#     for i in range(1):
+#         # db = VecDB(file_path="saved_db_1m.bin",new_db=False)
+#         db = VecDBIVF()
+#         records_np = np.random.random((10000, 70))
+#         records_dict = [{"id": i, "embed": list(row)} for i, row in enumerate(records_np)]
+#         db.insert_records(records_dict)
+#         res = run_queries(db, records_np, 5, 10)
+#         print("Evaluation = ",eval(res))
+#     # except Exception as e:
+#     #     print("error: ",e)
+
+#     # delete codes file
+#     for i in range(1000000):
+#         if os.path.exists("codes_"+str(i)+".bin"):
+#             os.remove("codes_"+str(i)+".bin")
+#         else:   
+#             break
+#     for i in range(1000000):
+#         if os.path.exists("ivf_cluster_"+str(i)+".bin"):
+#             os.remove("ivf_cluster_"+str(i)+".bin")
+#         else:
+#             break
 
     
