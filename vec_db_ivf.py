@@ -97,7 +97,7 @@ class VecDBIVF:
                 train_batch_size=100000
                 predict_batch_size=0
                 centroids_num=128
-                nprops=32
+                nprops=16
                 iter=32
                 self.ivfindex=ivf(data_path=self.file_path,folder_path="ivf_100k/",train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
                 # Training

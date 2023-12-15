@@ -183,7 +183,6 @@ class ivf :
             l.append(x)
         nearset_centers=sorted(range(len(l)), key=lambda sub: l[sub])[:self.nprops]
         nearest=[]
-        clusters = self.load_from_binary_file(self.folder_path+"ivf_cluster_"+str(0)+".bin")
         for c in nearset_centers:
                 clusters = self.load_from_binary_file(self.folder_path+"ivf_cluster_"+str(c)+".bin")
                 for row in clusters:
