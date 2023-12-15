@@ -1,11 +1,8 @@
 from typing import Dict, List
-# from typing import Annotated
 import numpy as np
 from PQ import CustomIndexPQ
 from ivf import ivf
-# from HNSW import HNSW
 import time
-# import faiss
 import struct
 import os
 
@@ -85,12 +82,6 @@ class VecDB:
                                     estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
             
             
-            # self.ivfindex=ivf(data_path=file_path,folder_path= self.ivf_path,train_batch_size=100000,predict_batch_size=100000,iter=32,centroids_num=256,nprops=64,load=True)
-            # self.pqindex = CustomIndexPQ( d = 70,m = 14,nbits = 8,path_to_db= file_path,load=True,
-            #                         estimator_file=self.pq_path,codes_file=self.codes_path,train_batch_size=100000,predict_batch_size=1000)
-            
-            
-      # def insert_records(self, rows: List[Dict[int, Annotated[List[float], 70]]]):
     def writing_binary_file(self,file_path,id,row):
       # Open a binary file in write mode
       with open(file_path, "ab") as binary_file:
@@ -107,23 +98,18 @@ class VecDB:
                 # free memory
                 del row
 
-        print("inserted successfully")
         # free memory
         del rows
         self._build_index()
 
     # def retrive(self, query: Annotated[List[float], 70], top_k = 5):
     def retrive(self, query,top_k = 5):
-        print("================In Search=====================")
         
         if(self.data_size<1000000):
             return self.ivfindex.IVF_search_small_data(query=query,top_k=top_k)    
         elif(self.data_size<30000000):
           centroids = self.ivfindex.IVF_search_combo_data(query=query)
           return self.pqindex.search_using_IVF(query,centroids,top_k)
-        # else:
-        #   centroids = self.HNSW.HNSW_search(query)
-        #   return self.pqindex.search_using_IVF(query,centroids[0],top_k)
         
     def _build_index(self):
         # start time
@@ -154,37 +140,19 @@ class VecDB:
             # Training
             cluster=self.ivfindex.IVF_train()
             self.ivfindex.add_clusters(cluster)
-          #1000000
-          # elif(self.data_size==1000000):
-          #   train_batch_size=100000
-          #   predict_batch_size=100000
-          #   centroids_num=128
-          #   nprops=32
-          #   iter=32
-          #   self.ivfindex=ivf(data_path=self.file_path,train_batch_size=train_batch_size,predict_batch_size=predict_batch_size,iter=iter,centroids_num= centroids_num,nprops=nprops)
-          #   # Training
-          #   cluster=self.ivfindex.IVF_train()
-          #   self.ivfindex.add_clusters(cluster)
-          #   for i in range(9):
-          #       cluster=self.ivfindex.IVF_predict()
-          #       self.ivfindex.add_clusters(cluster)
+
         else:
-          #5000000 ,1000000 ,2000000
           if(self.data_size==1000000):
-            # print("data_sze=10000")
             os.makedirs("ivf_1m", exist_ok=True)
             os.makedirs("pq_1m", exist_ok=True)
             self.ivfindex=ivf(data_path=self.file_path,folder_path = "ivf_1m/",train_batch_size=100000,predict_batch_size=100000,iter=64,centroids_num=1024,nprops=64)
             self.pqindex = CustomIndexPQ( d = 70,m = 10,nbits = 7,path_to_db= self.file_path,
                                     estimator_file="pq_1m/estimator.pkl",codes_file="pq_1m/",train_batch_size=100000,predict_batch_size=1000)
             
-            # self.HNSW = HNSW(self.ivfindex.nprops)
-
             # Training
             cluster=self.ivfindex.IVF_train()
             self.pqindex.train()
             self.pqindex.add(cluster)
-            # self.HNSW.HNSW_train(self.ivfindex.centroids)
             for i in range(9):
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
@@ -204,8 +172,6 @@ class VecDB:
                 self.pqindex.add(cluster)
 
           elif(self.data_size==5000000):
-            print("=========IN 5M=============")
-            # create folder for ivf and pq
             os.makedirs("ivf_5m", exist_ok=True)
             os.makedirs("pq_5m", exist_ok=True)
             
@@ -220,7 +186,6 @@ class VecDB:
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
           elif(self.data_size==10000000):
-            print("=========IN 10M=============")
             # create folder for ivf and pq
             os.makedirs("ivf_10m", exist_ok=True)
             os.makedirs("pq_10m", exist_ok=True)
@@ -237,7 +202,6 @@ class VecDB:
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
           elif(self.data_size==15000000):
-            print("=========IN 15M=============")
             # create folder for ivf and pq
             os.makedirs("ivf_15m", exist_ok=True)
             os.makedirs("pq_15m", exist_ok=True)
@@ -254,7 +218,6 @@ class VecDB:
                 cluster=self.ivfindex.IVF_predict()
                 self.pqindex.add(cluster)
           elif(self.data_size==20000000):
-            print("=========IN 20M=============")
             # create folder for ivf and pq
             os.makedirs("ivf_20m", exist_ok=True)
             os.makedirs("pq_20m", exist_ok=True)

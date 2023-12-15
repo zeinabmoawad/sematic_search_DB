@@ -13,7 +13,6 @@ import math
 from sklearn import preprocessing
 from scipy.cluster.vq import kmeans2,vq
 import heapq
-# !python evaluation.py
 import platform
 import time
 import struct
@@ -96,12 +95,6 @@ class CustomIndexPQ:
         self.train_batch_size = train_batch_size
         self.predict_batch_size=predict_batch_size
         self.prediction_count=0
-
-        # self.estimators = [
-        #     KMeans(n_clusters=self.k, **estimator_kwargs) for _ in range(m)
-        # ]
-        # logger.info(f"Creating following estimators: {self.estimators[0]!r}")
-        # save_file(self.estimator_file,self.estimators) #"estimators.pkl"
         self.is_trained = False
         if load:
             self.estimators = load_estimators(self.estimator_file)
@@ -159,21 +152,10 @@ class CustomIndexPQ:
     
     def load_txtfile(self,file):
         loaded_data = []
-        # print(file.readlines())
         file_content = file.readlines()
-        # print(file_content)
         for line in file_content:
-            # print('line = ',line)
             values = line.strip().split(' ')
-            # print(values)
-            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-            # array_values = np.array()
             float_data = [int(item) for item in values]
-            # code = np.array(float_data)
-
-            # array_values = np.array([int(x) for x in values])
-            # print(array_values)
-            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
             loaded_data.append(float_data)
         return np.array(loaded_data)
     def train(self) -> None:
@@ -189,27 +171,18 @@ class CustomIndexPQ:
             raise ValueError("Training multiple times is not allowed")
 
         # load data from csv file
-        print("start training")
         data = np.array(self.fetch_from_binary(self.path_to_db,0,self.train_batch_size))
-        # print(data)
         X= data[:, 1:]
 
         self.estimators = [] 
         for i in range(self.m):
-            # estimator = self.estimators[i]
             X_i = X[:, i * self.ds : (i + 1) * self.ds]
             centroids, _ = kmeans2(X_i, self.k,iter=100,minit='points') 
-            print("Finished KMeans for the ",i,"-th segment"," from ",self.m," segments")
             logger.info(f"Fitting KMeans for the {i}-th segment")
-            # estimator.fit(X_i)
-            # print("centroids = ",centroids)
             self.estimators.append(centroids)
         save_file(self.estimator_file,self.estimators)
-        # save_file('estimators.txt',self.estimators)
 
         self.is_trained = True
-        # save estimators to csv file
-        print("finished training")
 
 
     def encode_using_IVF(self,X: np.ndarray) -> np.ndarray:
@@ -226,17 +199,11 @@ class CustomIndexPQ:
                 estimator = self.estimators[i]
                 X_i = X[:, i * self.ds : (i + 1) * self.ds]
                 code_i, _ = vq(X_i, estimator) 
-                # code[:, i] = estimator.predict(X_i)
                 code[:, i] = code_i
                 # add id to code at beginning 
             code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-            # print("code shape = ",code.shape)
-            # code = np.concatenate((np.array([id]).reshape(1,1),code), axis=1).astype(np.int32)
-            # append to result
-            # print("code  ",code)
             result.append(code)
-        # convert result to numpy array of shape (n,m) instead of list of shape (n,1,m)
-        # print("resuls = ",result)
+
         result = np.array(result).reshape(-1,self.m+1)
         return result
     def add(self,data:np.ndarray= None) -> None:
@@ -249,7 +216,6 @@ class CustomIndexPQ:
         """
         if not self.is_trained:
             raise ValueError("The quantizer needs to be trained first.")
-        # self.codes = self.encode()
         start = time.time()
         debug = True
         if data is not None:
@@ -265,17 +231,13 @@ class CustomIndexPQ:
 
                     file.write(result.tobytes())
                     # for item in result:
-                    # # print(item)
                     #     file.write(struct.pack('i',int(item[0])))  
                     #     file.write(struct.pack(f'{len(item[1:])}i', *item[1:]))
                     #     assert len(item[1:]) == self.m
 
         else:
-            save_file(self.codes_file,self.encode()) #"codes.pkl"
-            print("error")
+            save_file(self.codes_file,self.encode()) 
         end = time.time()
-        print("time of writing one batch= ",end-start)
-
 
     def compute_asymmetric_distances(self, X: np.ndarray) -> np.ndarray:
         """Compute asymmetric distances to all database codes.
@@ -302,30 +264,16 @@ class CustomIndexPQ:
 
         distance_table = np.empty(
             (n_queries, self.m, self.k), dtype=self.dtype_orig
-        )  # (n_queries, m, k)
+        )  
 
-        
         for i in range(self.m):
-            X_i = X[:, i * self.ds : (i + 1) * self.ds]  # (n_queries, ds)
-            centers = self.estimators[i] # (k, ds)
+            X_i = X[:, i * self.ds : (i + 1) * self.ds] 
+            centers = self.estimators[i] 
             distance_table[:, i, :] = euclidean_distances(
                 X_i, centers, squared=True
             )
-        #     X_i = X_i / np.linalg.norm(X_i, axis=1,keepdims=True)
-        #     # cosine_similarity = np.dot(X_i,centers)/np.linalg.norm(X) * np.linalg.norm(centers)
-        # #     distance_table[:, i, :] = 2 - 2*cosine_similarity(X_i, centers)
-        #     ans = self._cal_score(centers,X_i.reshape(-1,1))
-        #     # b = []
-        #     # for a in ans:
-        #     #     b.append(math.sqrt(2*abs(1-a)))
-        #     # print("b answer = ",b,)
-        #     distance_table[:, i, :] = ans.reshape(1,-1)
-            # print("of my function = ",ans.reshape(1,-1),"\n")
-        # # print("of function defined = ",1 - cosine_similarity(X_i, centers),"\n")
-
 
         distances = np.zeros((n_queries, n_codes), dtype=self.dtype_orig)
-        # print("codes shape = ",self.codes.shape)
         for i in range(self.m):
             distances += distance_table[:, i, self.codes[:, i+1]]
         # append ids column to distances
@@ -356,58 +304,15 @@ class CustomIndexPQ:
         if self.codes is None:
             # load codes from pickle file
             self.codes = self.load_file(self.codes_file)
-            # print("print(self.codes) =",self.codes)
-            # print("Before ",self.codes.shape)
-            # self.ids = self.codes[:,0]
-            # self.codes = self.codes[:,1:]
-            # print("After ",self.codes.shape)
         if self.estimators is None:
-            # load estimators from pickle file
             self.estimators = load_estimators(self.estimator_file)
 
-        # n_queries = len(X)
-        # X = X / np.linalg.norm(X, axis=1,keepdims=True)
         distances_all = self.compute_asymmetric_distances(X)
-        # print("Distance ",distances_all.shape)
-        # print("Ids ",self.ids.shape)
-        # print("Ids ",self.ids.reshape(-1,1).shape)
-        # append ids column to distances_all
-        # distances_all = np.concatenate((self.ids.reshape(-1,1),np.array(distances_all).reshape(-1,1)), axis=1).astype(self.dtype_orig)
-
-        
-        # sort distances_all by distances column not id column
-
-        # distances_all = distances_all[distances_all[:,1].argsort()]
-        # with open("test.txt", 'wb') as file:
-            # np.savetxt(file,distances_all)
-        
-        # sort distances_all by distances column not id column
         indices = np.argsort(distances_all, axis=1)[:, :k]
 
-        # distances = np.empty((n_queries, k), dtype=np.float32)
-        # for i in range(n_queries):
-            # distances[i] = distances_all[i][indices[i]]
         return indices[0]
-        # return np.array(distances_all[:k,0]).astype(np.int32)
 
     def load_file(self,file):
-        # loaded_data = []
-        # # Loop through the file until the end
-        # while True:
-        #     # Read an integer (4 bytes)
-        #     packed_integer = file.read(4)
-        #     if not packed_integer:
-        #         # Break the loop if there is no more data to read
-        #         break
-        #     integer_value = struct.unpack('i', packed_integer)[0]
-
-        #     # Read a list of floats (8 bytes each)
-        #     packed_floats = file.read(4 *self.m)  # Assuming a list of 3 floats per row
-        #     float_values = [struct.unpack('i', packed_floats[i:i+4])[0] for i in range(0, len(packed_floats), 4)]
-        #     float_values.insert(0,integer_value)
-        #     # Append the result as a tuple (integer, list of floats)
-        #     loaded_data.append(float_values)
-        
         loaded_data = np.fromfile(file, dtype=np.int32)
         loaded_data = loaded_data.reshape((-1, 1+self.m))
         return np.array(loaded_data)
@@ -431,7 +336,6 @@ class CustomIndexPQ:
         indices
             Array of shape `(n_queries, k)`.
         """
-        # self.codes = codes
         # load codes from pickle file with name i in centroid list
         if self.estimators is None:
             # load estimators from pickle file
@@ -443,29 +347,14 @@ class CustomIndexPQ:
             # open pickle file with name i if exists or create new one and append to it
             with open(self.codes_file+"codes_"+str(centriods[i])+".bin", 'rb') as file:
                 self.codes = self.load_file(file)
-                # #----------------------------------------------------------------
-                # with open("codes_"+str(centriods[i])+".txt", 'r') as file2:
-                #     self.codes = self.load_txtfile(file2)
-                # #----------------------------------------------------------------
-                
                 distances_all = self.compute_asymmetric_distances(Xq)
-                # calculate time
-                # start_time = time.time()
                 distances_all = self.top_k_lowest_elements(distances_all,k*2)
-                # end_time = time.time()
-                # print("time of top k= ",end_time-start_time)
-                # start_time = time.time()
                 # distances_all = distances_all[distances_all[:,1].argsort()][:k,:]
-                # end_time = time.time()
-                # print("time of sort= ",end_time-start_time)
-                # indices = np.argsort(distances_all, axis=1)[:, :k]
                 if i == 0:
                     distances = distances_all
                 else:
                     distances = np.concatenate((distances,distances_all), axis=0)
         
-        end = time.time()
-        print("time of searching= ",end-start)
         if refine:
             # call refinement
             return self.refinement(distances[:,0],Xq,k)[:,0]
@@ -495,8 +384,6 @@ class CustomIndexPQ:
             # remove id from vec
             vec = vec[1:]
 
-            # convert to 1d array
-            # vec = np.array(vec).reshape(1,-1)
             # compute cosine similarity with query
             cosine_similarity_output = self._cal_score(vec, query.reshape(-1))
 
@@ -507,25 +394,7 @@ class CustomIndexPQ:
         refine_vectors = np.array(refine_vectors)
 
         ids = self.top_k_largest_elements(refine_vectors,k)
-        end = time.time()
-        print("time of refinement= ",end-start)
         return ids
-        # sort on cosine similarity
-        refine_vectors = refine_vectors[refine_vectors[:,1].argsort()]
-
-        # reverse to get highest cosine similarity
-        refine_vectors = refine_vectors[::-1]
-
-        # get top k IDs
-        refine_vectors = refine_vectors[:k]
-
-        # get IDs
-        ids2 = refine_vectors[:,0].astype(np.int32)
-        
-        # compare ids if not equal assert
-        assert np.array_equal(ids,ids2)
-
-        return refine_vectors[:,0].astype(np.int32)
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -547,58 +416,3 @@ class CustomIndexPQ:
         indices = heapq.nlargest(k, range(len(nums)), key=lambda i: nums[i, 1])
         # return top k largest full rows from nums
         return nums[indices,:].astype(np.int32)
-
-        # return ids of top k largest elements from list of indices
-        # return nums[indices,0].astype(np.int32)
-
-        min_heap = []
-        
-        # Push the first k elements onto the heap
-        for num in nums[:k]:
-            heapq.heappush(min_heap, (-1*num[1],num[0]))
-        
-        # Continue pushing elements onto the heap while maintaining size k
-        for num in nums[k:]:
-            if num[1]*-1 < min_heap[0][0]:
-                heapq.heappop(min_heap)
-                heapq.heappush(min_heap, (num[1],num[0]))
-        
-        # The heap now contains the top k largest elements
-        # get the top k largest elements in sorted order
-        return [heapq.heappop(min_heap)[1] for _ in range(len(min_heap))]
-        # return list(min_heap)
-
-
-
-        # def add_clusters(self,cluster:np.ndarray= None) -> None:
-        # """Add vectors to the database (their encoded versions).
-
-        # Parameters
-        # ----------
-        # X
-        #     Array of shape (n_codes, d) of dtype np.float32.
-        # """
-        # if cluster is not None:
-        #     for i in range(len(cluster)):
-        #         for item in cluster[i]:
-        #             with open("ivf_cluster_"+str(i)+".txt", 'a') as file:
-        #                 line = f"{item[0]} {' '.join(map(str, item[1]))}\n"
-        #                 file.write(line)
-            
-    # def load_from_text_file(self,file_path):
-    #     """
-    #     Load data from a text file.
-
-    #     Parameters:
-    #     - file_path: Path to the file.
-
-    #     Returns:
-    #     - List of tuples loaded from the file.
-    #     """
-    #     loaded_data = []
-    #     with open(file_path, 'r') as file:
-    #         for line in file.readlines():
-    #             values = line.strip().split(' ')
-    #             array_values = np.array([float(x) for x in values])
-    #             loaded_data.append((array_values[0], array_values[1:]))
-    #     return loaded_data
